@@ -312,7 +312,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
             // has no handles, since it is neither moved nor resized (S01).
             break
         case .arrow(let id):
-            if let a = d.arrows.first(where: { $0.id == id }) {
+            if let a = d.findArrow(id) {
                 let pts = HitTest.route(model, in: d, a)
                 if let first = pts.first, let last = pts.last {
                     for p in [first, last] {
@@ -453,7 +453,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
 
         // A selected arrow's handles sit on top of everything else. A
         // selected box has none (S01): it is neither moved nor resized.
-        if case .arrow(let id) = state.selection, let a = d.arrows.first(where: { $0.id == id }) {
+        if case .arrow(let id) = state.selection, let a = d.findArrow(id) {
             if let end = HitTest.endHandle(model, of: a, in: d, at: pt, zoom: Double(scale)) {
                 // A grouped end (S02) drags its whole fork or join along the face.
                 drag = .endpoint(arrowId: id, end: end, members: HitTest.endGroup(model, in: d, arrowId: id, end: end))
@@ -889,7 +889,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
             value = b.name
             rect = SheetRect(x: b.x + 8, y: b.y + b.h / 2 - 14, w: b.w - 16, h: 28)
         case .arrowLabel(let id):
-            guard let a = d.arrows.first(where: { $0.id == id }) else { return }
+            guard let a = d.findArrow(id) else { return }
             let bundleTerm = HitTest.drawsBundleTerm(model, in: d, a)
             let labelled = bundleTerm ? Self.asDrawn(model, d, a) : a
             value = labelled.label

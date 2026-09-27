@@ -198,7 +198,7 @@ struct StatusBar: View {
             guard let b = d.findBox(id) else { return "nothing selected" }
             return "box \(b.number) — \(boxNode(d, b))\(b.name.isEmpty ? "" : " — \(b.name)")"
         case .arrow(let id):
-            guard let a = d.arrows.first(where: { $0.id == id }) else { return "nothing selected" }
+            guard let a = d.findArrow(id) else { return "nothing selected" }
             return "\(a.role.label.lowercased()) — \(a.label.isEmpty ? "unlabelled" : a.label)"
         case nil:
             return "nothing selected"

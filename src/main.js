@@ -8,7 +8,7 @@ import {
   initCanvas, renderCanvas, fitToWindow, zoomBy, addBoxHere, deleteSelection, startBoxEdit, startLabelEdit, cancelInlineEdit,
 } from './ui/canvas.js';
 import { renderTree, renderModelProps, renderGlossary, renderProps, renderChecks, renderStatus } from './ui/panels.js';
-import { renderToolbar, loadSample, saveCurrent } from './ui/toolbar.js';
+import { renderToolbar, loadSample, saveCurrent, ARROW_PROMPT } from './ui/toolbar.js';
 import { confirmDialog, modalOpen } from './ui/dialog.js';
 import { deserialize } from './io/json.js';
 import { fromXml } from './io/idef0xml.js';
@@ -138,7 +138,7 @@ window.addEventListener('keydown', (e) => {
 
   switch (e.key) {
     case 'v': case 'V': set({ tool: 'select', pending: null, hint: '' }); break;
-    case 'a': case 'A': set({ tool: 'arrow', pending: null, hint: 'Click a source: a box side, or the sheet edge for a boundary arrow.' }); break;
+    case 'a': case 'A': set({ tool: 'arrow', pending: null, hint: ARROW_PROMPT }); break;
     case 'b': case 'B': e.preventDefault(); addBoxHere(); break;
     case 'Delete': case 'Backspace': e.preventDefault(); deleteSelection(); break;
     case 'Enter': {

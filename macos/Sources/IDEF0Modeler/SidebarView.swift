@@ -320,7 +320,14 @@ struct ConceptRow: View {
                         let id = concept.id
                         // Through the core's removeConcept: a bundle is
                         // un-combined, a member leaves its bundle's list.
-                        try? document.apply("Remove Concept", undoManager: undoManager) { try Edits.removeConcept(&$0, conceptId: id) }
+                        // A refusal is reported, as on every other edit path
+                        // here: `try?` left the person with no hint and no
+                        // beep when the concept could not be removed.
+                        do {
+                            try document.apply("Remove Concept", undoManager: undoManager) { try Edits.removeConcept(&$0, conceptId: id) }
+                        } catch {
+                            state.hint = String(describing: error)
+                        }
                     } label: { Image(systemName: "xmark.circle") }
                         .buttonStyle(.borderless)
                         .help(concept.isBundle ? "Remove — un-combines the bundle; its members stay" : "Remove — nothing uses this concept")

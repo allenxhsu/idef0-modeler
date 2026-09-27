@@ -39,7 +39,7 @@ struct PropertiesView: View {
             case .box(let id):
                 if let b = d.findBox(id) { BoxInspector(document: document, state: state, diagram: d, box: b).id(b.id) }
             case .arrow(let id):
-                if let a = d.arrows.first(where: { $0.id == id }) { ArrowInspector(document: document, state: state, diagram: d, arrow: a).id(a.id) }
+                if let a = d.findArrow(id) { ArrowInspector(document: document, state: state, diagram: d, arrow: a).id(a.id) }
             case nil:
                 DiagramInspector(document: document, state: state, diagram: d).id(d.id)
             }

@@ -76,6 +76,13 @@ function themeMenu() {
   return host;
 }
 
+/**
+ * What the arrow tool asks for. Typed once here because the toolbar button and
+ * the keyboard shortcut both set it, and because it must stay byte-identical
+ * to the Mac app's `EditorState.arrowPrompt`.
+ */
+export const ARROW_PROMPT = 'Click a source: a box side, or the sheet edge for a boundary arrow.';
+
 export function renderToolbar() {
   const host = document.getElementById('toolbar');
   clear(host);
@@ -120,7 +127,7 @@ export function renderToolbar() {
     }),
     el('button', {
       class: `btn${store.ui.tool === 'arrow' ? ' on' : ''}`, text: '→ Arrow', title: 'Draw arrow (A)',
-      onclick: () => set({ tool: 'arrow', pending: null, hint: 'Click a source: a box side, or the sheet edge for a boundary arrow.' }),
+      onclick: () => set({ tool: 'arrow', pending: null, hint: ARROW_PROMPT }),
     }),
     el('button', {
       class: 'btn', text: '▭ Box', title: 'Add a box (B)',

@@ -149,7 +149,6 @@ export function redo() {
 export const canUndo = () => store._undo.length > 0;
 export const canRedo = () => store._redo.length > 0;
 export const undoLabel = () => (store._undo.at(-1)?.label ?? '');
-export const redoLabel = () => (store._redo.at(-1)?.label ?? '');
 
 export function loadModel(model, fileName = null) {
   // Every load path arrives here — new, sample, open, import, autosave — so

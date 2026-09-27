@@ -35,9 +35,6 @@ public enum Selection: Hashable, Sendable {
     case box(String)
     case arrow(String)
 
-    public var id: String {
-        switch self { case .box(let id), .arrow(let id): return id }
-    }
 }
 
 public enum BendAxis: String, Hashable, Sendable { case x, y }

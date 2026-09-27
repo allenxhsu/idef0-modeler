@@ -149,6 +149,15 @@ extension Diagram {
         return boxes.first { jsStrictEquals($0.id, boxId) }
     }
 
+    /// `findArrow(diagram, arrowId)`. The app layer needs this for the same
+    /// reason the core does: an id is a sequence of code units, and Swift's
+    /// `==` would quietly match a canonically equivalent one the model layer
+    /// treats as a different arrow.
+    public func findArrow(_ arrowId: String?) -> Arrow? {
+        guard let arrowId else { return nil }
+        return arrows.first { jsStrictEquals($0.id, arrowId) }
+    }
+
     public func boxIndex(_ boxId: String) -> Int? { boxes.firstIndex { jsStrictEquals($0.id, boxId) } }
     public func arrowIndex(_ arrowId: String) -> Int? { arrows.firstIndex { jsStrictEquals($0.id, arrowId) } }
 

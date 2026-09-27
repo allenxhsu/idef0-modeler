@@ -3,7 +3,7 @@
 // Every issue is { severity, code, message, diagramId, kind, id }, where
 // kind/id point at the box or arrow to select when the issue is clicked.
 
-import { DECOMP_MIN, DECOMP_MAX, ROLE_LABEL } from './types.js';
+import { DECOMP_MIN, DECOMP_MAX, ROLE_LABEL, SIDE_ROLE } from './types.js';
 import { arrowRole, boxNode, boxReadingOrder, childDiagram, contextDiagram, effectiveConceptId, findBox, icomPairing, isBundle, sortedBoxes } from './model.js';
 import { conceptById, conceptUsage, occurrencesOf, transitiveMembers } from './concepts.js';
 import { boxNameLines } from '../util.js';
@@ -330,8 +330,7 @@ function checkStructure(m, ctx, add) {
   }
 }
 
-const ROLE_OF_SIDE = (side) =>
-  ({ left: 'input', top: 'control', right: 'output', bottom: 'mechanism' }[side] || 'unknown');
+const ROLE_OF_SIDE = (side) => SIDE_ROLE[side] || 'unknown';
 
 /**
  * A child diagram's boundary arrows must match the arrows on its parent box,
@@ -351,7 +350,7 @@ function checkIcomConsistency(m, child) {
   const parentDg = parent.diagram;
   const node = boxNode(parentDg, parent.box);
   const name = (a) => a.label.trim() || '(unlabelled)';
-  const role = { left: 'input', top: 'control', right: 'output', bottom: 'mechanism' };
+  const role = SIDE_ROLE;
 
   for (const p of pairs) {
     // Both ends are bound but to different concepts (F11): a hand-edit or an

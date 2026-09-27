@@ -17,7 +17,6 @@ export function uid(prefix = 'id') {
 }
 
 export const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
-export const round = (v, n = 2) => Math.round(v * 10 ** n) / 10 ** n;
 
 export function el(tag, attrs = {}, ...children) {
   const n = document.createElement(tag);

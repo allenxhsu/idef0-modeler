@@ -274,7 +274,7 @@ export function routeArrow(diagram, arrow) {
 /** A run's grouping key: same orientation, same coordinate (within a unit),
  *  overlapping extent along the run. Only plain H-H, V-V and feedback runs —
  *  the ones a fixed lane offset actually separates — are grouped. */
-function runOf(diagram, arrow, a, b, obstacles) {
+function runOf(a, b, obstacles) {
   const h0 = a.nx !== 0, h1 = b.nx !== 0;
   const f0 = a.boundary ? -1 : 1, f1 = b.boundary ? -1 : 1;
   let facing = false, g = 0;
@@ -339,7 +339,7 @@ function laneOffsetOf(diagram, arrow, a, b, obstacles) {
     if (ar.bend != null) return null;
     const pa = j === i ? a : anchorOf(diagram, ar.from);
     const pb = j === i ? b : anchorOf(diagram, ar.to);
-    return runOf(diagram, ar, pa, pb, obstacles);
+    return runOf(pa, pb, obstacles);
   });
   if (i < 0 || !runs[i]) return 0;
   // Breadth-first over the (symmetric) collision graph, so the group is the
