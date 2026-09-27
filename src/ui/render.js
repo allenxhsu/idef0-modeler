@@ -141,7 +141,7 @@ function findParent(model, diagram) {
 
 /* ----------------------------------------------------------------- boxes */
 
-export function renderBox(model, diagram, box, opts = {}) {
+export function renderBox(diagram, box, opts = {}) {
   const selected = opts.selection && opts.selection.kind === 'box' && opts.selection.id === box.id;
   const g = svg('g', { class: 'box', 'data-box': box.id });
   // FIPS 183 §3.2.1.3: "Boxes shall be drawn with solid lines" — an unnamed
@@ -202,7 +202,7 @@ export function renderBox(model, diagram, box, opts = {}) {
  * arrow's strokes, then every box, then every arrow's annotations, so a label
  * that lands over a box stays on top of its fill.
  */
-export function renderArrow(model, diagram, entry, opts = {}) {
+export function renderArrow(entry, opts = {}) {
   const { arrow, pts, label, labelPath } = entry;
   const selected = opts.selection && opts.selection.kind === 'arrow' && opts.selection.id === arrow.id;
   const strokes = svg('g', { class: 'arrow', 'data-arrow': arrow.id });
@@ -674,7 +674,7 @@ const portCodeRect = (port) => icomRect(port.side, portShape(port).edge, port.co
  * circle. A port is not an arrow: it is no routing obstacle and never reaches
  * the ICOM/IDL/report exports.
  */
-export function renderPort(port, opts = {}) {
+function renderPort(port, opts = {}) {
   const shape = portShape(port);
   const g = svg('g', { class: 'port', 'data-port': port.parentArrowId });
   g.appendChild(svg('path', { class: 'port-stub', d: pointsToPath([shape.edge, shape.inner]) }));
@@ -710,11 +710,11 @@ export function renderDiagram(model, diagram, opts = {}) {
   const boxLayer = svg('g', { class: 'box-layer' });
   const labelLayer = svg('g', { class: 'label-layer' });
   for (const entry of drawn) {
-    const { strokes, annotations } = renderArrow(model, diagram, entry, { ...opts, icom, icomEnds, boxes });
+    const { strokes, annotations } = renderArrow(entry, { ...opts, icom, icomEnds, boxes });
     strokeLayer.appendChild(strokes);
     labelLayer.appendChild(annotations);
   }
-  for (const b of diagram.boxes) boxLayer.appendChild(renderBox(model, diagram, b, opts));
+  for (const b of diagram.boxes) boxLayer.appendChild(renderBox(diagram, b, opts));
   // Ports (S01) go in the annotations pass too, after every arrow's: a parent
   // concept still unconnected here sits at the sheet edge, on top of whatever
   // a box or an arrow put there. Their labels keep clear of every ICOM code

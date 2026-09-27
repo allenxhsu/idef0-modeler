@@ -9,7 +9,7 @@
 import { svg, clear, clamp, rafThrottle, textWidth } from '../util.js';
 import { SHEET, WORK, SIDES, STUB } from '../model/types.js';
 import {
-  anchorOf, routeArrow, bendAxis, nearestSide, posOnSide, distToPolyline, rectOf, longestSegmentMid,
+  anchorOf, routeArrow, bendAxis, nearestSide, posOnSide, distToPolyline, rectOf, longestSegmentMid, pointsToPath,
   labelPosition, labelPlacement, legacyLabelBase, labelRect, pointInRect, portShape,
 } from '../model/geometry.js';
 import {
@@ -28,6 +28,8 @@ const EDGE_GRAB = 26;        // how close to the frame edge counts as a boundary
 const BOX_GRAB = 14;         // how close to a box border counts as that side
 const PORT_HALF_W = 5;       // a port's stub is grabbable within a 10-unit-wide rectangle
 const PORT_RING = 6;         // and its open circle (r 4) with a little slack
+const ARROW_GRAB = 9;        // CanvasRules.arrowGrab — how near an arrow's route selects it
+const LABEL_GRAB = 26;       // CanvasRules.labelGrab — and how near its label starts a label drag
 
 let root, viewport, sheetLayer, overlayLayer, wrap, editor;
 let hover = null;            // candidate anchor under the cursor
@@ -242,7 +244,7 @@ function renderOverlay() {
     } else {
       pts = [shape.inner, drag.cursor];
     }
-    overlayLayer.appendChild(svg('path', { class: 'ghost', d: pts.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ') }));
+    overlayLayer.appendChild(svg('path', { class: 'ghost', d: pointsToPath(pts, 0) }));
   }
 
   const pending = store.ui.pending;
@@ -252,7 +254,7 @@ function renderOverlay() {
     const pts = hover
       ? routeArrow(dg, { bend: null, from: pending.from, to: hover })
       : [{ x: a.x, y: a.y }, { x: a.x + a.nx * 20, y: a.y + a.ny * 20 }, { x: target.x, y: target.y }];
-    overlayLayer.appendChild(svg('path', { class: 'ghost', d: pts.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ') }));
+    overlayLayer.appendChild(svg('path', { class: 'ghost', d: pointsToPath(pts, 0) }));
   }
 }
 
@@ -307,7 +309,6 @@ export function zoomBy(factor, center) {
   emit({ light: true });
 }
 
-export function zoomTo(scale) { zoomBy(scale / store.ui.view.scale, null); }
 
 function onWheel(e) {
   e.preventDefault();
@@ -415,7 +416,7 @@ function boxAt(dg, pt) {
  */
 export function arrowAt(dg, pt) {
   const { drawn, ownEntry } = frameOf(dg);
-  let best = null, bestD = 9;
+  let best = null, bestD = ARROW_GRAB;
   for (const e of drawn) {
     const d = distToPolyline(e.pts, pt);
     if (d < bestD) { bestD = d; best = e; }
@@ -580,7 +581,7 @@ function onPointerDown(e) {
     // label already found by arrowAt's route reach is never left ungrabbable.
     const pts = routeOf(dg, arrow);
     const mid = longestSegmentMid(pts);
-    if (drawnLabelOf(dg, arrow) && Math.hypot(pt.x - (mid.x + (arrow.ldx || 0)), pt.y - (mid.y + (arrow.ldy || 0))) < 26) {
+    if (drawnLabelOf(dg, arrow) && Math.hypot(pt.x - (mid.x + (arrow.ldx || 0)), pt.y - (mid.y + (arrow.ldy || 0))) < LABEL_GRAB) {
       drag = { kind: 'label', label: 'Move arrow label', arrowId: arrow.id, start: pt, orig: { dx: arrow.ldx || 0, dy: arrow.ldy || 0 } };
     }
     return;
@@ -936,4 +937,3 @@ export function deleteSelection() {
 }
 
 export function getHover() { return hover; }
-export function clearHover() { hover = null; hotPort = null; }
