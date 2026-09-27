@@ -17,15 +17,41 @@ export function serialize(model) {
 
 const MODEL_KEYS = ['schema', 'id', 'title', 'author', 'project', 'purpose', 'viewpoint',
   'status', 'created', 'revised', 'glossary', 'diagrams', 'rootDiagramId'];
-const DIAGRAM_KEYS = ['id', 'node', 'title', 'titleLocked', 'parentBoxId', 'cNumber', 'notes', 'boxes', 'arrows'];
-const BOX_KEYS = ['id', 'name', 'number', 'conceptId', 'x', 'y', 'w', 'h', 'childDiagramId', 'note', 'refs'];
-const ARROW_KEYS = ['id', 'label', 'conceptId', 'from', 'to', 'bend', 'ldx', 'ldy', 'tunnelFrom', 'tunnelTo', 'note'];
+/**
+ * The per-element clocks, written after everything else the element models
+ * and before its extras — `updatedAt`, the ISO-8601 instant the element last
+ * changed, and `deletedAt`, the instant it was removed. `deletedAt` is a
+ * tombstone: the element stays in the file, marked as gone, so a load keeps
+ * it rather than treating it as live. Both are optional and written only when
+ * set, so a file that never carried them round-trips byte for byte.
+ */
+const CLOCK_KEYS = ['updatedAt', 'deletedAt'];
+
+const DIAGRAM_KEYS = ['id', 'node', 'title', 'titleLocked', 'parentBoxId', 'cNumber', 'notes', 'boxes', 'arrows', ...CLOCK_KEYS];
+const BOX_KEYS = ['id', 'name', 'number', 'conceptId', 'x', 'y', 'w', 'h', 'childDiagramId', 'note', 'refs', ...CLOCK_KEYS];
+const ARROW_KEYS = ['id', 'label', 'conceptId', 'from', 'to', 'bend', 'ldx', 'ldy', 'tunnelFrom', 'tunnelTo', 'note', ...CLOCK_KEYS];
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
+ * The clocks an element carries, in `CLOCK_KEYS` order: absent, null and the
+ * empty string all mean unset, and an unset clock is no member at all —
+ * never `null`, which would change the bytes of every file written before
+ * the clocks existed. A value is coerced to a string exactly as `id` is.
+ */
+const clocksOf = (o) => {
+  const out = {};
+  for (const k of CLOCK_KEYS) {
+    if (o[k] === undefined || o[k] === null) continue;
+    const s = String(o[k]);
+    if (s) out[k] = s;
+  }
+  return out;
+};
+
+/**
  * The members of a diagram, box or arrow this version does not model (an IRI,
- * provenance, a cost), in `Object.entries` order. They are kept on the element
+ * a cost), in `Object.entries` order. They are kept on the element
  * and written after the members it does model, so annotations survive a save.
  * `Object.fromEntries` and spreading define own properties, so even a
  * `__proto__` member stays an ordinary member. Endpoints are rebuilt whole by
@@ -39,9 +65,10 @@ function canonical(m) {
     purpose: m.purpose, viewpoint: m.viewpoint, status: m.status, created: m.created, revised: m.revised,
     // A bundle's `members` is written only when non-empty, after `definition`
     // and before any extras; a plain concept carries no such member at all.
-    glossary: (m.glossary || []).map(({ id, term, kind, definition, members, ...rest }) => ({
+    glossary: (m.glossary || []).map(({ id, term, kind, definition, members, updatedAt, deletedAt, ...rest }) => ({
       id, term, kind, definition,
       ...(Array.isArray(members) && members.length ? { members } : {}),
+      ...clocksOf({ updatedAt, deletedAt }),
       ...rest,
     })),
     diagrams: {},
@@ -54,13 +81,16 @@ function canonical(m) {
       boxes: d.boxes.map((b) => ({
         id: b.id, name: b.name, number: b.number, conceptId: b.conceptId ?? null,
         x: b.x, y: b.y, w: b.w, h: b.h, childDiagramId: b.childDiagramId ?? null, note: b.note, refs: b.refs,
+        ...clocksOf(b),
         ...extrasOf(b, BOX_KEYS),
       })),
       arrows: d.arrows.map((a) => ({
         id: a.id, label: a.label, conceptId: a.conceptId ?? null, from: canonicalEnd(a.from), to: canonicalEnd(a.to),
         bend: a.bend ?? null, ldx: a.ldx, ldy: a.ldy, tunnelFrom: a.tunnelFrom, tunnelTo: a.tunnelTo, note: a.note,
+        ...clocksOf(a),
         ...extrasOf(a, ARROW_KEYS),
       })),
+      ...clocksOf(d),
       ...extrasOf(d, DIAGRAM_KEYS),
     };
   }
@@ -111,7 +141,7 @@ export function deserialize(text, { repairs = [] } = {}) {
       repairs.push(`Glossary entry ${i + 1} is not an object; it was dropped.`);
       return;
     }
-    const { id, term, kind, definition, members, ...rest } = g;
+    const { id, term, kind, definition, members, updatedAt, deletedAt, ...rest } = g;
     const conceptId = id == null ? uid('gl') : String(id);
     if (id == null) repairs.push(`Glossary entry ${i + 1} has no id; it was given ${conceptId}.`);
     glossary.push({
@@ -122,6 +152,7 @@ export function deserialize(text, { repairs = [] } = {}) {
       // A bundle's member list, its ids coerced as `id` is; absent (or not a
       // list) means no members. An empty list is the same as none.
       ...(Array.isArray(members) && members.length ? { members: members.map((x) => String(x)) } : {}),
+      ...clocksOf({ updatedAt, deletedAt }),
       ...rest,
     });
   });
@@ -156,6 +187,7 @@ export function deserialize(text, { repairs = [] } = {}) {
           id: boxId, name: b.name || '', number: Number(b.number) || 0, conceptId: b.conceptId ?? null,
           x: num(b.x, 100), y: num(b.y, 100), w: num(b.w, 190), h: num(b.h, 112),
           childDiagramId: b.childDiagramId ?? null, note: b.note || '', refs: b.refs || '',
+          ...clocksOf(b),
           ...extrasOf(b, BOX_KEYS),
         };
       }),
@@ -169,9 +201,11 @@ export function deserialize(text, { repairs = [] } = {}) {
           from: endpoint(a.from), to: endpoint(a.to),
           bend: a.bend ?? null, ldx: num(a.ldx, 0), ldy: num(a.ldy, 0),
           tunnelFrom: !!a.tunnelFrom, tunnelTo: !!a.tunnelTo, note: a.note || '',
+          ...clocksOf(a),
           ...extrasOf(a, ARROW_KEYS),
         };
       }),
+      ...clocksOf(dg),
       ...extrasOf(dg, DIAGRAM_KEYS),
     };
   }

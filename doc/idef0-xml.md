@@ -37,7 +37,8 @@ stylesheet's worth of work.
       <cNumber>…</cNumber>                       <!-- optional -->
       <notes>[{"text":"…"}]</notes>               <!-- optional, JSON -->
       <activities>
-        <activity id="bx_…" number="1" node="A1" concept="gl_…" detail="dg_…">
+        <!-- updatedAt/deletedAt are optional here and on diagram, arrow and term -->
+        <activity id="bx_…" number="1" node="A1" concept="gl_…" detail="dg_…" updatedAt="2026-09-27T14:05:00Z">
           <name>Plan Production</name>
           <bounds x="100" y="172" width="190" height="112"/>
           <refs>SOP-17</refs>                      <!-- optional -->
@@ -112,6 +113,13 @@ stylesheet's worth of work.
 - `titleLocked` on `<diagram>` records whether the diagram's title was set
   explicitly rather than inherited from its parent box's name — see
   **Versions** for how it is read.
+- `updatedAt` and `deletedAt` on `<diagram>`, `<activity>`, `<arrow>` and
+  `<term>` are the per-element clocks the native JSON carries: when the
+  element last changed, and — as a tombstone — when it was removed. Each is an
+  ISO-8601 instant and each is written only when the element has it, so an
+  element with neither is written exactly as it was before the clocks existed.
+  Read only from `version="2"` files; a version-1 reader ignores them as it
+  ignores any attribute it does not know.
 - `role` on `<arrow>` is **derived**, not authoritative — it is written out for
   readers, and on import it is recomputed from the sides the arrow touches:
   left = input, top = control, right = output, bottom in = mechanism,
@@ -212,7 +220,8 @@ its own — a reader sees ordinary decoded text.
 A `version="2"` round trip (`fromXml(toXml(m))`, or the Swift equivalent)
 reproduces the native `.idef0.json` exactly: every model, diagram, activity
 and arrow field, `titleLocked`, box `refs`, diagram `notes`, tunnel flags,
-concept bindings, a bundle's `members`, activity array order, and unmodelled
+concept bindings, a bundle's `members`, the per-element clocks
+(`updatedAt`/`deletedAt`), activity array order, and unmodelled
 top-level model and glossary-entry members (via `<extensions>`). Two things do
 not survive, by design:
 

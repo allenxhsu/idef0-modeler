@@ -1,6 +1,6 @@
 {
   "schema": "idef0-modeler/1",
-  "id": "mdl_mu4wz347dad8536a0074b327",
+  "id": "mdl_muk827f26b5440fc1f8b0599",
   "title": "Manufacture Product",
   "author": "A. Modeller",
   "project": "Plant Operations Baseline",
@@ -11,19 +11,19 @@
   "revised": "2026-09-14",
   "glossary": [
     {
-      "id": "gl_mu4wz34805de3aa395ceb904",
+      "id": "gl_muk827f323d61d371cb3b369",
       "term": "Assemble Product",
       "kind": "activity",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz348a43f867491b261dd",
+      "id": "gl_muk827f367b502c1e25b1666",
       "term": "Assembled Product",
       "kind": "data",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz348d3f93ebfc4df3d5a",
+      "id": "gl_muk827f3cd5a04fb69516814",
       "term": "Components",
       "kind": "data",
       "definition": ""
@@ -35,25 +35,25 @@
       "definition": "A confirmed request for product, carrying quantity, specification and required date."
     },
     {
-      "id": "gl_mu4wz34866dd366b86e75344",
+      "id": "gl_muk827f3edf078a969fe26a8",
       "term": "Fabricate Components",
       "kind": "activity",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz348a4215b6739a73d7a",
+      "id": "gl_muk827f339570b9ea1f7fbe2",
       "term": "Finished Product",
       "kind": "data",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz3488b3ec93c788ca8ce",
+      "id": "gl_muk827f3db9a8b6cedb16a0a",
       "term": "Manufacture Product",
       "kind": "activity",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz348a05619478e1d3124",
+      "id": "gl_muk827f300d53bc53a528218",
       "term": "Plan Production",
       "kind": "activity",
       "definition": ""
@@ -65,13 +65,13 @@
       "definition": "Machine tools, fixtures and handling equipment on the plant floor."
     },
     {
-      "id": "gl_mu4wz348107ccbae4efdeb57",
+      "id": "gl_muk827f3c0fbab5fbb30e6d9",
       "term": "Production Schedule",
       "kind": "data",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz34873b63f24c0f53e1b",
+      "id": "gl_muk827f34efa1e56112841d7",
       "term": "Production Staff",
       "kind": "mechanism",
       "definition": ""
@@ -83,19 +83,19 @@
       "definition": "The dimensional and finish tolerances that fabricated and assembled product must meet."
     },
     {
-      "id": "gl_mu4wz3482ca81d526b8b011d",
+      "id": "gl_muk827f3d31fc66d403c8316",
       "term": "Raw Materials",
       "kind": "data",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz34879f5484a16a3b38a",
+      "id": "gl_muk827f322d9352a9986988f",
       "term": "Ship Product",
       "kind": "activity",
       "definition": ""
     },
     {
-      "id": "gl_mu4wz348d3b84906c272551d",
+      "id": "gl_muk827f331224e49c8d033b1",
       "term": "Shipping Notice",
       "kind": "data",
       "definition": ""
@@ -108,8 +108,8 @@
     }
   ],
   "diagrams": {
-    "dg_mu4wz34721f3bdc61644f24e": {
-      "id": "dg_mu4wz34721f3bdc61644f24e",
+    "dg_muk827f2a74aee7d4117ff08": {
+      "id": "dg_muk827f2a74aee7d4117ff08",
       "node": "A-0",
       "title": "Manufacture Product",
       "titleLocked": false,
@@ -118,22 +118,22 @@
       "notes": [],
       "boxes": [
         {
-          "id": "bx_mu4wz3479a9aec451118d7a1",
+          "id": "bx_muk827f2283e6a907b153f2f",
           "name": "Manufacture Product",
           "number": 0,
-          "conceptId": "gl_mu4wz3488b3ec93c788ca8ce",
+          "conceptId": "gl_muk827f3db9a8b6cedb16a0a",
           "x": 400,
           "y": 358,
           "w": 300,
           "h": 170,
-          "childDiagramId": "dg_mu4wz348951b413b3fdc22cc",
+          "childDiagramId": "dg_muk827f2ff1b96f258c90378",
           "note": "",
           "refs": ""
         }
       ],
       "arrows": [
         {
-          "id": "ar_mu4wz348304d95256eedc1ec",
+          "id": "ar_muk827f249ce3f6b580e7dc7",
           "label": "Customer Order",
           "conceptId": "gl1",
           "from": {
@@ -143,7 +143,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "left",
             "pos": 0.33
           },
@@ -155,9 +155,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34853c691b02c19cba5",
+          "id": "ar_muk827f254cac09176bd4c57",
           "label": "Raw Materials",
-          "conceptId": "gl_mu4wz3482ca81d526b8b011d",
+          "conceptId": "gl_muk827f3d31fc66d403c8316",
           "from": {
             "type": "boundary",
             "side": "left",
@@ -165,7 +165,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "left",
             "pos": 0.66
           },
@@ -177,9 +177,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz348908fac0daa5e7c6b",
+          "id": "ar_muk827f2c9a44fbd677cfd90",
           "label": "Production Schedule",
-          "conceptId": "gl_mu4wz348107ccbae4efdeb57",
+          "conceptId": "gl_muk827f3c0fbab5fbb30e6d9",
           "from": {
             "type": "boundary",
             "side": "top",
@@ -187,7 +187,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "top",
             "pos": 0.25
           },
@@ -199,7 +199,7 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz348b87ec29161c01369",
+          "id": "ar_muk827f227e5b0c1314a80ca",
           "label": "Quality Standards",
           "conceptId": "gl3",
           "from": {
@@ -209,7 +209,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "top",
             "pos": 0.75
           },
@@ -221,12 +221,12 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz348cdcd4701d0805d99",
+          "id": "ar_muk827f2f79f544d229c10a0",
           "label": "Finished Product",
-          "conceptId": "gl_mu4wz348a4215b6739a73d7a",
+          "conceptId": "gl_muk827f339570b9ea1f7fbe2",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "right",
             "pos": 0.33
           },
@@ -243,12 +243,12 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3486789a13d1e3b3984",
+          "id": "ar_muk827f21b9dbb3c87651964",
           "label": "Shipping Notice",
-          "conceptId": "gl_mu4wz348d3b84906c272551d",
+          "conceptId": "gl_muk827f331224e49c8d033b1",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "right",
             "pos": 0.66
           },
@@ -265,7 +265,7 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34861a3b95fccb52f1c",
+          "id": "ar_muk827f22e0237a52995d730",
           "label": "Plant Equipment",
           "conceptId": "gl4",
           "from": {
@@ -275,7 +275,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "bottom",
             "pos": 0.25
           },
@@ -287,9 +287,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34810d1109f59cd2471",
+          "id": "ar_muk827f25e61af87d0551415",
           "label": "Production Staff",
-          "conceptId": "gl_mu4wz34873b63f24c0f53e1b",
+          "conceptId": "gl_muk827f34efa1e56112841d7",
           "from": {
             "type": "boundary",
             "side": "bottom",
@@ -297,7 +297,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3479a9aec451118d7a1",
+            "boxId": "bx_muk827f2283e6a907b153f2f",
             "side": "bottom",
             "pos": 0.75
           },
@@ -310,20 +310,20 @@
         }
       ]
     },
-    "dg_mu4wz348951b413b3fdc22cc": {
-      "id": "dg_mu4wz348951b413b3fdc22cc",
+    "dg_muk827f2ff1b96f258c90378": {
+      "id": "dg_muk827f2ff1b96f258c90378",
       "node": "A0",
       "title": "Manufacture Product",
       "titleLocked": false,
-      "parentBoxId": "bx_mu4wz3479a9aec451118d7a1",
+      "parentBoxId": "bx_muk827f2283e6a907b153f2f",
       "cNumber": "",
       "notes": [],
       "boxes": [
         {
-          "id": "bx_mu4wz348d3873b99aee0c565",
+          "id": "bx_muk827f23ecd62e11265dbae",
           "name": "Plan Production",
           "number": 1,
-          "conceptId": "gl_mu4wz348a05619478e1d3124",
+          "conceptId": "gl_muk827f300d53bc53a528218",
           "x": 100,
           "y": 172,
           "w": 190,
@@ -333,10 +333,10 @@
           "refs": ""
         },
         {
-          "id": "bx_mu4wz3480e9e1b96b2a2f64f",
+          "id": "bx_muk827f28f390c270121426e",
           "name": "Fabricate Components",
           "number": 2,
-          "conceptId": "gl_mu4wz34866dd366b86e75344",
+          "conceptId": "gl_muk827f3edf078a969fe26a8",
           "x": 337,
           "y": 299,
           "w": 190,
@@ -346,10 +346,10 @@
           "refs": ""
         },
         {
-          "id": "bx_mu4wz3484ffd28ea77305c8a",
+          "id": "bx_muk827f230fcfe6c7ccbdb20",
           "name": "Assemble Product",
           "number": 3,
-          "conceptId": "gl_mu4wz34805de3aa395ceb904",
+          "conceptId": "gl_muk827f323d61d371cb3b369",
           "x": 573,
           "y": 425,
           "w": 190,
@@ -359,10 +359,10 @@
           "refs": ""
         },
         {
-          "id": "bx_mu4wz34803e5ac45da9e3fb3",
+          "id": "bx_muk827f2797158cca170f821",
           "name": "Ship Product",
           "number": 4,
-          "conceptId": "gl_mu4wz34879f5484a16a3b38a",
+          "conceptId": "gl_muk827f322d9352a9986988f",
           "x": 810,
           "y": 552,
           "w": 190,
@@ -374,7 +374,7 @@
       ],
       "arrows": [
         {
-          "id": "ar_mu4wz3486c6f0eea771f34d1",
+          "id": "ar_muk827f277b58b961d0639eb",
           "label": "Customer Order",
           "conceptId": "gl1",
           "from": {
@@ -384,7 +384,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz348d3873b99aee0c565",
+            "boxId": "bx_muk827f23ecd62e11265dbae",
             "side": "left",
             "pos": 0.5
           },
@@ -396,9 +396,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34802b8e04b5282d459",
+          "id": "ar_muk827f259d69d0db46ec7dd",
           "label": "Raw Materials",
-          "conceptId": "gl_mu4wz3482ca81d526b8b011d",
+          "conceptId": "gl_muk827f3d31fc66d403c8316",
           "from": {
             "type": "boundary",
             "side": "left",
@@ -406,7 +406,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3480e9e1b96b2a2f64f",
+            "boxId": "bx_muk827f28f390c270121426e",
             "side": "left",
             "pos": 0.5
           },
@@ -418,9 +418,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34817b9ff856b484eb2",
+          "id": "ar_muk827f2f76547a4a308c670",
           "label": "Production Schedule",
-          "conceptId": "gl_mu4wz348107ccbae4efdeb57",
+          "conceptId": "gl_muk827f3c0fbab5fbb30e6d9",
           "from": {
             "type": "boundary",
             "side": "top",
@@ -428,7 +428,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz348d3873b99aee0c565",
+            "boxId": "bx_muk827f23ecd62e11265dbae",
             "side": "top",
             "pos": 0.5
           },
@@ -440,7 +440,7 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3482153bcbb8c4fd2c4",
+          "id": "ar_muk827f2a7876f40635cd00c",
           "label": "Quality Standards",
           "conceptId": "gl3",
           "from": {
@@ -450,7 +450,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3480e9e1b96b2a2f64f",
+            "boxId": "bx_muk827f28f390c270121426e",
             "side": "top",
             "pos": 0.85
           },
@@ -462,7 +462,7 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3485df32fdfa90387d8",
+          "id": "ar_muk827f2b6aed38a3e967bf1",
           "label": "Plant Equipment",
           "conceptId": "gl4",
           "from": {
@@ -472,7 +472,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3480e9e1b96b2a2f64f",
+            "boxId": "bx_muk827f28f390c270121426e",
             "side": "bottom",
             "pos": 0.5
           },
@@ -484,9 +484,9 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz348714ac202ce62046f",
+          "id": "ar_muk827f2299a76ae9ce14a55",
           "label": "Production Staff",
-          "conceptId": "gl_mu4wz34873b63f24c0f53e1b",
+          "conceptId": "gl_muk827f34efa1e56112841d7",
           "from": {
             "type": "boundary",
             "side": "bottom",
@@ -494,7 +494,7 @@
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3484ffd28ea77305c8a",
+            "boxId": "bx_muk827f230fcfe6c7ccbdb20",
             "side": "bottom",
             "pos": 0.5
           },
@@ -506,18 +506,18 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3486e9a2b836374f2da",
+          "id": "ar_muk827f229cf598538766dcf",
           "label": "Work Order",
           "conceptId": "gl2",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz348d3873b99aee0c565",
+            "boxId": "bx_muk827f23ecd62e11265dbae",
             "side": "right",
             "pos": 0.5
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3480e9e1b96b2a2f64f",
+            "boxId": "bx_muk827f28f390c270121426e",
             "side": "top",
             "pos": 0.25
           },
@@ -529,18 +529,18 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz348bb4bdcbce5d7eb62",
+          "id": "ar_muk827f2b4c525445fb63962",
           "label": "Work Order",
           "conceptId": "gl2",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz348d3873b99aee0c565",
+            "boxId": "bx_muk827f23ecd62e11265dbae",
             "side": "right",
             "pos": 0.7
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3484ffd28ea77305c8a",
+            "boxId": "bx_muk827f230fcfe6c7ccbdb20",
             "side": "top",
             "pos": 0.3
           },
@@ -552,18 +552,18 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3483e310a75493801c5",
+          "id": "ar_muk827f270b9ff34591f1db5",
           "label": "Work Order",
           "conceptId": "gl2",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz348d3873b99aee0c565",
+            "boxId": "bx_muk827f23ecd62e11265dbae",
             "side": "right",
             "pos": 0.88
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz34803e5ac45da9e3fb3",
+            "boxId": "bx_muk827f2797158cca170f821",
             "side": "top",
             "pos": 0.3
           },
@@ -575,18 +575,18 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3480b26d83c92015a1a",
+          "id": "ar_muk827f2f2fe3ee531c2bdd8",
           "label": "Components",
-          "conceptId": "gl_mu4wz348d3f93ebfc4df3d5a",
+          "conceptId": "gl_muk827f3cd5a04fb69516814",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz3480e9e1b96b2a2f64f",
+            "boxId": "bx_muk827f28f390c270121426e",
             "side": "right",
             "pos": 0.5
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz3484ffd28ea77305c8a",
+            "boxId": "bx_muk827f230fcfe6c7ccbdb20",
             "side": "left",
             "pos": 0.5
           },
@@ -598,18 +598,18 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3480b5c586967f45c09",
+          "id": "ar_muk827f27331ab83633b367d",
           "label": "Assembled Product",
-          "conceptId": "gl_mu4wz348a43f867491b261dd",
+          "conceptId": "gl_muk827f367b502c1e25b1666",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz3484ffd28ea77305c8a",
+            "boxId": "bx_muk827f230fcfe6c7ccbdb20",
             "side": "right",
             "pos": 0.5
           },
           "to": {
             "type": "box",
-            "boxId": "bx_mu4wz34803e5ac45da9e3fb3",
+            "boxId": "bx_muk827f2797158cca170f821",
             "side": "left",
             "pos": 0.5
           },
@@ -621,12 +621,12 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz3488bbff11ef98b426a",
+          "id": "ar_muk827f25e4b9d3ee86ab88d",
           "label": "Finished Product",
-          "conceptId": "gl_mu4wz348a4215b6739a73d7a",
+          "conceptId": "gl_muk827f339570b9ea1f7fbe2",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz34803e5ac45da9e3fb3",
+            "boxId": "bx_muk827f2797158cca170f821",
             "side": "right",
             "pos": 0.35
           },
@@ -643,12 +643,12 @@
           "note": ""
         },
         {
-          "id": "ar_mu4wz34897d118da94b1f08f",
+          "id": "ar_muk827f21e1a5c12cf111ce4",
           "label": "Shipping Notice",
-          "conceptId": "gl_mu4wz348d3b84906c272551d",
+          "conceptId": "gl_muk827f331224e49c8d033b1",
           "from": {
             "type": "box",
-            "boxId": "bx_mu4wz34803e5ac45da9e3fb3",
+            "boxId": "bx_muk827f2797158cca170f821",
             "side": "right",
             "pos": 0.7
           },
@@ -667,5 +667,5 @@
       ]
     }
   },
-  "rootDiagramId": "dg_mu4wz34721f3bdc61644f24e"
+  "rootDiagramId": "dg_muk827f2a74aee7d4117ff08"
 }

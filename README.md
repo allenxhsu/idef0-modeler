@@ -78,6 +78,8 @@ FIPS clause of their own.
 | `bundle-cycle` | error | A bundle contains itself through its members | structural |
 | `bundle-thin` | warning | A bundle has fewer than two members that name a glossary concept | FIPS 183 §3.2.2.3 (a bundle combines at least two concepts) |
 | `bundle-mixed-kind` | warning | A bundle combines concepts of different kinds | toolkit |
+| `provenance-date` | error | A box, arrow, diagram or concept records a change or removal time that is not an ISO-8601 instant | toolkit |
+| `provenance-order` | error | An element records being removed before its own last change | toolkit |
 
 Arrow roles are not stored — they are *derived* from which side of the box the
 arrow touches, so an input can never accidentally be recorded as a control.
@@ -337,6 +339,29 @@ concept's id, and the bundle is looked up from its members — so the file
 records which concept each occurrence denotes, and un-combining is lossless.
 The XML interchange carries the same list as `<member>` children of the
 `<term>` ([schema](doc/idef0-xml.md)).
+
+## When an element changed
+
+A box, an arrow, a diagram and a glossary concept may each record two times:
+`updatedAt`, when it last changed, and `deletedAt`, when it was removed.
+Both are ISO-8601 instants with an explicit zone — `2026-09-27T14:05:00Z`, or
+`2026-09-27T16:05:00+02:00` — and the rule checker reads them itself rather
+than leaving it to the platform, so the two apps order any pair of them
+identically. `provenance-date` above reports one it cannot read;
+`provenance-order` reports a removal that predates the element's own last
+change.
+
+`deletedAt` is a tombstone: the element stays in the file, marked as gone, so
+that anything comparing two copies of a model can tell "removed here" from
+"never existed here". Nothing else in the app acts on it yet — opening a file
+keeps it as it found it.
+
+Neither time is ever invented. An element the file records none for is written
+back with none, so a model saved before these fields existed saves byte for
+byte as it did, and a file carrying them keeps them whichever app saves it.
+They are written after everything else the element carries, and are absent
+rather than `null` when unset. The XML interchange carries them as attributes
+([schema](doc/idef0-xml.md)).
 
 ## Not yet supported
 

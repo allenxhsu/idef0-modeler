@@ -4,7 +4,10 @@
 // `deserialize` repairs a file the way the web app does, down to JavaScript's
 // coercions: `num(null, 100)` is 0 because `Number(null)` is 0, while a missing
 // key falls back to 100; `titleLocked ?? …` keeps an explicit `false`; a
-// diagram's dictionary key wins over the `id` written inside it. Members of
+// diagram's dictionary key wins over the `id` written inside it. The optional
+// per-element clocks `updatedAt` and `deletedAt` are read and written as the
+// web app does — absent, null or empty means unset, and an unset clock is no
+// member at all. Members of
 // the model, a glossary entry, a diagram, a box or an arrow that this app does
 // not model are kept and written back after the ones it does; an endpoint's are
 // not. A glossary entry, box or arrow without an id (absent or null) is given a
@@ -40,10 +43,16 @@ public enum ModelFile {
         "schema", "id", "title", "author", "project", "purpose", "viewpoint",
         "status", "created", "revised", "glossary", "diagrams", "rootDiagramId",
     ]
-    static let conceptKeys = ["id", "term", "kind", "definition", "members"]
-    static let diagramKeys = ["id", "node", "title", "titleLocked", "parentBoxId", "cNumber", "notes", "boxes", "arrows"]
-    static let boxKeys = ["id", "name", "number", "conceptId", "x", "y", "w", "h", "childDiagramId", "note", "refs"]
-    static let arrowKeys = ["id", "label", "conceptId", "from", "to", "bend", "ldx", "ldy", "tunnelFrom", "tunnelTo", "note"]
+    /// The per-element clocks, written after everything else the element
+    /// models and before its extras, in this order. Absent, null and the
+    /// empty string all mean unset, and an unset clock is no member at all —
+    /// never `null`, which would change the bytes of every file written
+    /// before the clocks existed.
+    static let clockKeys = ["updatedAt", "deletedAt"]
+    static let conceptKeys = ["id", "term", "kind", "definition", "members"] + clockKeys
+    static let diagramKeys = ["id", "node", "title", "titleLocked", "parentBoxId", "cNumber", "notes", "boxes", "arrows"] + clockKeys
+    static let boxKeys = ["id", "name", "number", "conceptId", "x", "y", "w", "h", "childDiagramId", "note", "refs"] + clockKeys
+    static let arrowKeys = ["id", "label", "conceptId", "from", "to", "bend", "ldx", "ldy", "tunnelFrom", "tunnelTo", "note"] + clockKeys
 
     // MARK: Reading
 
@@ -130,6 +139,14 @@ public enum ModelFile {
         return JSONValue.toJSString(v)
     }
 
+    /// `clocksOf(o)` from json.js: a clock that is absent, null or the empty
+    /// string is unset; anything else is coerced to a string as `id` is.
+    static func clock(_ v: JSONValue?) -> String? {
+        guard let v, !v.isNull else { return nil }
+        let s = JSONValue.toJSString(v)
+        return s.isEmpty ? nil : s
+    }
+
     /// `Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)))`.
     private static func extras(of o: JSONObject, except keys: [String]) -> JSONObject {
         var extras = JSONObject()
@@ -154,6 +171,7 @@ public enum ModelFile {
             // `Array.isArray(members) ? members.map(String) : none` — ids
             // coerced as `id` is; anything but a list means no members.
             members: (o["members"]?.arrayValue ?? []).map(JSONValue.toJSString),
+            updatedAt: clock(o["updatedAt"]), deletedAt: clock(o["deletedAt"]),
             extras: extras(of: o, except: conceptKeys)
         )
     }
@@ -192,6 +210,7 @@ public enum ModelFile {
                 childDiagramId: optionalId(b["childDiagramId"]),
                 note: orEmpty(b["note"]),
                 refs: orEmpty(b["refs"]),
+                updatedAt: clock(b["updatedAt"]), deletedAt: clock(b["deletedAt"]),
                 extras: extras(of: b, except: boxKeys)
             ))
         }
@@ -221,6 +240,7 @@ public enum ModelFile {
                 tunnelFrom: JSONValue.truthy(a["tunnelFrom"]),
                 tunnelTo: JSONValue.truthy(a["tunnelTo"]),
                 note: orEmpty(a["note"]),
+                updatedAt: clock(a["updatedAt"]), deletedAt: clock(a["deletedAt"]),
                 extras: extras(of: a, except: arrowKeys)
             ))
         }
@@ -235,6 +255,7 @@ public enum ModelFile {
             notes: d["notes"]?.arrayValue ?? [],
             boxes: boxes,
             arrows: arrows,
+            updatedAt: clock(d["updatedAt"]), deletedAt: clock(d["deletedAt"]),
             extras: extras(of: d, except: diagramKeys)
         )
     }
@@ -289,6 +310,7 @@ public enum ModelFile {
         // A bundle's members, only when there are any, after `definition` and
         // before any extras — the web app's canonical member order.
         if !c.members.isEmpty { o["members"] = .array(c.members.map(JSONValue.string)) }
+        writeClocks(&o, c.updatedAt, c.deletedAt)
         for m in c.extras where o[m.key] == nil { o[m.key] = m.value }
         return .object(o)
     }
@@ -304,6 +326,7 @@ public enum ModelFile {
         o["notes"] = .array(d.notes)
         o["boxes"] = .array(d.boxes.map(jsonValue))
         o["arrows"] = .array(d.arrows.map(jsonValue))
+        writeClocks(&o, d.updatedAt, d.deletedAt)
         for m in d.extras where o[m.key] == nil { o[m.key] = m.value }
         return .object(o)
     }
@@ -321,6 +344,7 @@ public enum ModelFile {
         o["childDiagramId"] = b.childDiagramId.map(JSONValue.string) ?? .null
         o["note"] = .string(b.note)
         o["refs"] = .string(b.refs)
+        writeClocks(&o, b.updatedAt, b.deletedAt)
         for m in b.extras where o[m.key] == nil { o[m.key] = m.value }
         return .object(o)
     }
@@ -338,8 +362,16 @@ public enum ModelFile {
         o["tunnelFrom"] = .bool(a.tunnelFrom)
         o["tunnelTo"] = .bool(a.tunnelTo)
         o["note"] = .string(a.note)
+        writeClocks(&o, a.updatedAt, a.deletedAt)
         for m in a.extras where o[m.key] == nil { o[m.key] = m.value }
         return .object(o)
+    }
+
+    /// The clocks a written element carries, in `clockKeys` order: only the
+    /// ones that are set, as `...clocksOf(el)` writes them.
+    static func writeClocks(_ o: inout JSONObject, _ updatedAt: String?, _ deletedAt: String?) {
+        if let updatedAt, !updatedAt.isEmpty { o["updatedAt"] = .string(updatedAt) }
+        if let deletedAt, !deletedAt.isEmpty { o["deletedAt"] = .string(deletedAt) }
     }
 
     static func jsonValue(_ e: Endpoint) -> JSONValue {

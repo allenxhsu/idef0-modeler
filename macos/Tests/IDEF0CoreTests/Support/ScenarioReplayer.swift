@@ -38,6 +38,20 @@ enum ScenarioReplayer {
             switch kind {
             case "renumberNodes":
                 m.renumberNodes()
+            // S05: a diagram's or a concept's own field, the way setBox and
+            // setArrow write a box's or an arrow's — the only way to reach the
+            // per-element clocks those two carry.
+            case "setDiagram":
+                let d = try diagramId(m, op)
+                let field = op["field"]!.stringValue!
+                let value = op["value"] ?? .null
+                try m.updateDiagram(d) { dg in try setDiagramField(&dg, field, value) }
+            case "setConcept":
+                let term = op["term"]!.stringValue!
+                guard let c = m.findConcept(term), let i = m.glossary.firstIndex(where: { $0.id == c.id }) else {
+                    throw ReplayError(description: "no concept \(term)")
+                }
+                try setConceptField(&m.glossary[i], op["field"]!.stringValue!, op["value"] ?? .null)
             case "renumberBoxes":
                 let d = try diagramId(m, op)
                 m.updateDiagram(d) { $0.renumberBoxes() }
@@ -233,6 +247,8 @@ enum ScenarioReplayer {
         case "tunnelTo": a.tunnelTo = JSONValue.truthy(v)
         case "bend": a.bend = v.isNull ? nil : JSONValue.toNumber(v)
         case "note": a.note = v.stringValue ?? ""
+        case "updatedAt": a.updatedAt = clockValue(v)
+        case "deletedAt": a.deletedAt = clockValue(v)
         default: throw ReplayError(description: "setArrow: unsupported field \(field)")
         }
     }
@@ -248,7 +264,35 @@ enum ScenarioReplayer {
         case "y": b.y = JSONValue.toNumber(v)
         case "w": b.w = JSONValue.toNumber(v)
         case "h": b.h = JSONValue.toNumber(v)
+        case "updatedAt": b.updatedAt = clockValue(v)
+        case "deletedAt": b.deletedAt = clockValue(v)
         default: throw ReplayError(description: "setBox: unsupported field \(field)")
+        }
+    }
+
+    /// A clock written straight onto an element by `setBox`/`setArrow`/
+    /// `setDiagram`/`setConcept`. The web app will hold an empty string there
+    /// as readily as an instant, and json.js treats absent, null and empty
+    /// alike; the Swift model has one representation for unset, so an empty
+    /// clock is nil here, exactly as `ModelFile.clock` reads one.
+    static func clockValue(_ v: JSONValue) -> String? {
+        guard let s = v.stringValue, !s.isEmpty else { return nil }
+        return s
+    }
+
+    static func setDiagramField(_ d: inout Diagram, _ field: String, _ v: JSONValue) throws {
+        switch field {
+        case "updatedAt": d.updatedAt = clockValue(v)
+        case "deletedAt": d.deletedAt = clockValue(v)
+        default: throw ReplayError(description: "setDiagram: unsupported field \(field)")
+        }
+    }
+
+    static func setConceptField(_ c: inout Concept, _ field: String, _ v: JSONValue) throws {
+        switch field {
+        case "updatedAt": c.updatedAt = clockValue(v)
+        case "deletedAt": c.deletedAt = clockValue(v)
+        default: throw ReplayError(description: "setConcept: unsupported field \(field)")
         }
     }
 }

@@ -163,6 +163,13 @@ bytes for it. What the Mac app shows:
 - The four bundle rule checks (`bundle-member-dup`, `bundle-cycle`,
   `bundle-thin`, `bundle-mixed-kind`) are the same as the web app's, with
   the same message text, and `idef0 validate` reports them too.
+- The per-element clocks a box, arrow, diagram or concept may carry
+  (`updatedAt`, `deletedAt`) are read, written and checked here exactly as in
+  the web app — the same two rules (`provenance-date`, `provenance-order`),
+  the same message text, and the same hand-rolled reading of an ISO-8601
+  instant, so both apps order any pair of clocks identically. Neither is ever
+  invented for an element the file records none for. There is no editor field
+  for them yet; the Checks panel and `idef0 validate` are where they surface.
 
 ## The `idef0` command line
 

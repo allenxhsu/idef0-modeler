@@ -148,9 +148,12 @@ function icomCounterpartConceptId(m, dg, arrow) {
 }
 
 /** The concept keys this version models; anything else on an entry is an
- *  extra (an IRI, provenance) a file carried. `members` is modelled (a
- *  bundle's member list, see model.js), so a bundle has no extras either. */
-const CONCEPT_FIELDS = ['id', 'term', 'kind', 'definition', 'members'];
+ *  extra (an IRI, a cost) a file carried. `members` is modelled (a bundle's
+ *  member list, see model.js), so a bundle has no extras either, and neither
+ *  has an entry carrying only the per-element clocks (see src/io/json.js):
+ *  a clock is not a definition somebody wrote, so it never stops rule (5)
+ *  renaming an otherwise unused concept in place. */
+const CONCEPT_FIELDS = ['id', 'term', 'kind', 'definition', 'members', 'updatedAt', 'deletedAt'];
 const hasNoExtras = (c) => Object.keys(c).every((k) => CONCEPT_FIELDS.includes(k));
 
 /**

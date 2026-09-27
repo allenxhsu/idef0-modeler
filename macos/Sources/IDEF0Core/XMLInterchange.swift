@@ -64,7 +64,7 @@ public enum XMLInterchange {
             // from the element's whole text content, so no whitespace may
             // sit between them.
             let members = g.members.map { #"<member id="\#(xmlAttr($0))"/>"# }.joined()
-            L.append(#"    <term id="\#(xmlAttr(g.id))" name="\#(xmlAttr(g.term))" kind="\#(xmlAttr(g.kind))">\#(xmlText(g.definition))\#(members)</term>"#)
+            L.append(#"    <term id="\#(xmlAttr(g.id))" name="\#(xmlAttr(g.term))" kind="\#(xmlAttr(g.kind))"\#(clockAttrs(g.updatedAt, g.deletedAt))>\#(xmlText(g.definition))\#(members)</term>"#)
         }
         L.append("  </glossary>")
 
@@ -74,7 +74,7 @@ public enum XMLInterchange {
             let parentBox = dg.parentBoxId.flatMap { $0.isEmpty ? nil : #" parentBox="\#(xmlAttr($0))""# } ?? ""
             let context = jsStrictEquals(dg.id, model.rootDiagramId) ? #" context="true""# : ""
             let titleLocked = dg.titleLocked ? "true" : "false"
-            L.append(#"    <diagram id="\#(xmlAttr(dg.id))" node="\#(xmlAttr(dg.node))" titleLocked="\#(titleLocked)"\#(parentBox)\#(context)>"#)
+            L.append(#"    <diagram id="\#(xmlAttr(dg.id))" node="\#(xmlAttr(dg.node))" titleLocked="\#(titleLocked)"\#(parentBox)\#(context)\#(clockAttrs(dg.updatedAt, dg.deletedAt))>"#)
             L.append("      <title>\(xmlText(dg.title))</title>")
             if !dg.cNumber.isEmpty { L.append("      <cNumber>\(xmlText(dg.cNumber))</cNumber>") }
             if !dg.notes.isEmpty { L.append("      <notes>\(xmlText(JSONValue.array(dg.notes).stringified(indent: 0)))</notes>") }
@@ -84,7 +84,7 @@ public enum XMLInterchange {
             for b in dg.boxes {
                 let concept = b.conceptId.flatMap { $0.isEmpty ? nil : #" concept="\#(xmlAttr($0))""# } ?? ""
                 let detail = b.childDiagramId.flatMap { $0.isEmpty ? nil : #" detail="\#(xmlAttr($0))""# } ?? ""
-                L.append(#"        <activity id="\#(xmlAttr(b.id))" number="\#(b.number)" node="\#(xmlAttr(boxNode(dg, b)))"\#(concept)\#(detail)>"#)
+                L.append(#"        <activity id="\#(xmlAttr(b.id))" number="\#(b.number)" node="\#(xmlAttr(boxNode(dg, b)))"\#(concept)\#(detail)\#(clockAttrs(b.updatedAt, b.deletedAt))>"#)
                 L.append("          <name>\(xmlText(b.name))</name>")
                 L.append(#"          <bounds x="\#(num(b.x))" y="\#(num(b.y))" width="\#(num(b.w))" height="\#(num(b.h))"/>"#)
                 if !b.refs.isEmpty { L.append("          <refs>\(xmlText(b.refs))</refs>") }
@@ -95,7 +95,7 @@ public enum XMLInterchange {
             L.append("      <arrows>")
             for a in dg.arrows {
                 let concept = a.conceptId.flatMap { $0.isEmpty ? nil : #" concept="\#(xmlAttr($0))""# } ?? ""
-                L.append(#"        <arrow id="\#(xmlAttr(a.id))" role="\#(a.role.rawValue)"\#(concept)>"#)
+                L.append(#"        <arrow id="\#(xmlAttr(a.id))" role="\#(a.role.rawValue)"\#(concept)\#(clockAttrs(a.updatedAt, a.deletedAt))>"#)
                 L.append("          <label>\(xmlText(a.label))</label>")
                 L.append("          \(endpointXml("source", a, .from, codes))")
                 L.append("          \(endpointXml("destination", a, .to, codes))")
@@ -174,6 +174,17 @@ public enum XMLInterchange {
 
     /// Attribute value: `xmlText`, plus TAB and LF encoded so attribute-value
     /// normalisation (XML §3.3.3) does not turn them into plain spaces.
+    /// `clockAttrs(o)` — the per-element clocks as attributes, written only
+    /// when set, so an element that carries neither is written exactly as
+    /// before. A version-1 reader ignores an attribute it does not know, and
+    /// this one reads them for version 2 or higher only.
+    private static func clockAttrs(_ updatedAt: String?, _ deletedAt: String?) -> String {
+        var out = ""
+        if let v = updatedAt, !v.isEmpty { out += #" updatedAt="\#(xmlAttr(v))""# }
+        if let v = deletedAt, !v.isEmpty { out += #" deletedAt="\#(xmlAttr(v))""# }
+        return out
+    }
+
     private static func xmlAttr(_ s: String) -> String {
         var out = String.UnicodeScalarView()
         for scalar in xmlText(s).unicodeScalars {
@@ -255,7 +266,9 @@ public enum XMLInterchange {
                 // Version 2 only: `:scope > member` children name the bundle's
                 // members; one with no id (or an empty one) names nothing and
                 // is skipped. A version-1 reader never sees them.
-                members: v2 ? x.children(n, "member").compactMap { orNil(x.attr($0, "id")) } : []
+                members: v2 ? x.children(n, "member").compactMap { orNil(x.attr($0, "id")) } : [],
+                updatedAt: v2 ? orNil(x.attr(n, "updatedAt")) : nil,
+                deletedAt: v2 ? orNil(x.attr(n, "deletedAt")) : nil
             )
         }
 
@@ -272,7 +285,9 @@ public enum XMLInterchange {
                 titleLocked: titleLocked,
                 parentBoxId: orNil(x.attr(d, "parentBox")),
                 cNumber: childText(d, "cNumber") ?? "",
-                notes: readNotes(v2 ? x.child(d, "notes") : nil, x)
+                notes: readNotes(v2 ? x.child(d, "notes") : nil, x),
+                updatedAt: v2 ? orNil(x.attr(d, "updatedAt")) : nil,
+                deletedAt: v2 ? orNil(x.attr(d, "deletedAt")) : nil
             )
             for a in x.selectAll(d, parent: "activities", child: "activity") {
                 let b = x.child(a, "bounds")
@@ -287,7 +302,9 @@ public enum XMLInterchange {
                     h: x.numAttr(b, "height") ?? 112,
                     childDiagramId: orNil(x.attr(a, "detail")),
                     note: childText(a, "note") ?? "",
-                    refs: v2 ? (childText(a, "refs") ?? "") : ""
+                    refs: v2 ? (childText(a, "refs") ?? "") : "",
+                    updatedAt: v2 ? orNil(x.attr(a, "updatedAt")) : nil,
+                    deletedAt: v2 ? orNil(x.attr(a, "deletedAt")) : nil
                 ))
             }
             for a in x.selectAll(d, parent: "arrows", child: "arrow") {
@@ -306,7 +323,9 @@ public enum XMLInterchange {
                     ldy: x.numAttr(off, "dy") ?? 0,
                     tunnelFrom: x.attr(src, "tunnelled") == "true",
                     tunnelTo: x.attr(dst, "tunnelled") == "true",
-                    note: childText(a, "note") ?? ""
+                    note: childText(a, "note") ?? "",
+                    updatedAt: v2 ? orNil(x.attr(a, "updatedAt")) : nil,
+                    deletedAt: v2 ? orNil(x.attr(a, "deletedAt")) : nil
                 ))
             }
             if model.diagrams.contains(dg.id) {

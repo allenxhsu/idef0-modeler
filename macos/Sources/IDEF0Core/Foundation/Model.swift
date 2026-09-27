@@ -9,6 +9,11 @@
 //   Endpoint { type:'box', boxId, side, pos } | { type:'boundary', side, pos }
 //   Concept  { id, term, kind, definition, members? }
 //
+// A box, arrow, diagram and concept may also carry the optional per-element
+// clocks `updatedAt` and `deletedAt` (ISO-8601 instants; `deletedAt` is a
+// tombstone marking the element removed). Neither is ever invented: an
+// element the file records none for keeps none, so it round-trips unchanged.
+//
 // A concept whose `members` lists other concepts is a bundle (FIPS 183
 // §3.2.2.3): the bundle carries the general label, its members the specific
 // ones. Boxes and arrows always bind to the specific concept; the bundle is
@@ -73,18 +78,25 @@ public struct Box: Identifiable, Hashable, Sendable {
     public var childDiagramId: String?
     public var note: String
     public var refs: String
-    /// Members of the box this app does not model (an IRI, provenance), kept
+    /// When this box last changed — an ISO-8601 instant, nil when the file
+    /// records none. Never invented.
+    public var updatedAt: String?
+    /// When this box was removed: a tombstone, kept rather than dropped.
+    public var deletedAt: String?
+    /// Members of the box this app does not model (an IRI, a cost), kept
     /// in file order and written after the ones it does.
     public var extras: JSONObject
 
     public init(
         id: String, name: String, number: Int, conceptId: String? = nil,
         x: Double, y: Double, w: Double, h: Double,
-        childDiagramId: String? = nil, note: String = "", refs: String = "", extras: JSONObject = JSONObject()
+        childDiagramId: String? = nil, note: String = "", refs: String = "",
+        updatedAt: String? = nil, deletedAt: String? = nil, extras: JSONObject = JSONObject()
     ) {
         self.id = id; self.name = name; self.number = number; self.conceptId = conceptId
         self.x = x; self.y = y; self.w = w; self.h = h
-        self.childDiagramId = childDiagramId; self.note = note; self.refs = refs; self.extras = extras
+        self.childDiagramId = childDiagramId; self.note = note; self.refs = refs
+        self.updatedAt = updatedAt; self.deletedAt = deletedAt; self.extras = extras
     }
 
     public var rect: SheetRect { SheetRect(x: x, y: y, w: w, h: h) }
@@ -104,6 +116,10 @@ public struct Arrow: Identifiable, Hashable, Sendable {
     public var tunnelFrom: Bool
     public var tunnelTo: Bool
     public var note: String
+    /// When this arrow last changed, and when it was removed — the same
+    /// optional ISO-8601 clocks every element carries.
+    public var updatedAt: String?
+    public var deletedAt: String?
     /// Members of the arrow this app does not model, kept in file order. An
     /// endpoint's own unknown members are not kept, as in the web app.
     public var extras: JSONObject
@@ -111,11 +127,13 @@ public struct Arrow: Identifiable, Hashable, Sendable {
     public init(
         id: String, label: String, conceptId: String? = nil, from: Endpoint, to: Endpoint,
         bend: Double? = nil, ldx: Double = 0, ldy: Double = 0,
-        tunnelFrom: Bool = false, tunnelTo: Bool = false, note: String = "", extras: JSONObject = JSONObject()
+        tunnelFrom: Bool = false, tunnelTo: Bool = false, note: String = "",
+        updatedAt: String? = nil, deletedAt: String? = nil, extras: JSONObject = JSONObject()
     ) {
         self.id = id; self.label = label; self.conceptId = conceptId
         self.from = from; self.to = to; self.bend = bend; self.ldx = ldx; self.ldy = ldy
-        self.tunnelFrom = tunnelFrom; self.tunnelTo = tunnelTo; self.note = note; self.extras = extras
+        self.tunnelFrom = tunnelFrom; self.tunnelTo = tunnelTo; self.note = note
+        self.updatedAt = updatedAt; self.deletedAt = deletedAt; self.extras = extras
     }
 
     /// The endpoint named the way the web app names them: "from" or "to".
@@ -141,11 +159,17 @@ public struct Concept: Identifiable, Hashable, Sendable {
     /// empty for a plain concept. Written to the file only when non-empty;
     /// the web app's `members`, absent when there are none.
     public var members: [String]
+    /// When this entry last changed, and when it was removed — the same
+    /// optional ISO-8601 clocks every element carries.
+    public var updatedAt: String?
+    public var deletedAt: String?
     /// Members of the glossary entry this app does not model, kept in file order.
     public var extras: JSONObject
 
-    public init(id: String, term: String, kind: String, definition: String = "", members: [String] = [], extras: JSONObject = JSONObject()) {
-        self.id = id; self.term = term; self.kind = kind; self.definition = definition; self.members = members; self.extras = extras
+    public init(id: String, term: String, kind: String, definition: String = "", members: [String] = [],
+                updatedAt: String? = nil, deletedAt: String? = nil, extras: JSONObject = JSONObject()) {
+        self.id = id; self.term = term; self.kind = kind; self.definition = definition; self.members = members
+        self.updatedAt = updatedAt; self.deletedAt = deletedAt; self.extras = extras
     }
 
     public var knownKind: ConceptKind? { ConceptKind(rawValue: kind) }
@@ -166,17 +190,22 @@ public struct Diagram: Identifiable, Hashable, Sendable {
     public var notes: [JSONValue]
     public var boxes: [Box]
     public var arrows: [Arrow]
+    /// When this diagram last changed, and when it was removed — the same
+    /// optional ISO-8601 clocks every element carries.
+    public var updatedAt: String?
+    public var deletedAt: String?
     /// Members of the diagram this app does not model, kept in file order.
     public var extras: JSONObject
 
     public init(
         id: String, node: String, title: String, titleLocked: Bool = false, parentBoxId: String? = nil,
         cNumber: String = "", notes: [JSONValue] = [], boxes: [Box] = [], arrows: [Arrow] = [],
-        extras: JSONObject = JSONObject()
+        updatedAt: String? = nil, deletedAt: String? = nil, extras: JSONObject = JSONObject()
     ) {
         self.id = id; self.node = node; self.title = title; self.titleLocked = titleLocked
         self.parentBoxId = parentBoxId; self.cNumber = cNumber; self.notes = notes
-        self.boxes = boxes; self.arrows = arrows; self.extras = extras
+        self.boxes = boxes; self.arrows = arrows
+        self.updatedAt = updatedAt; self.deletedAt = deletedAt; self.extras = extras
     }
 }
 

@@ -54,6 +54,117 @@ private let reservedBoxTerms: Set<JSStringKey> = Set(
 )
 private let reservedArrowTerms: Set<JSStringKey> = reservedBoxTerms.union([JSStringKey("call")])
 
+// MARK: - The per-element clocks
+
+/// The optional clocks a box, arrow, diagram or concept carries (see
+/// ModelFile.swift): `updatedAt`, when the element last changed, and
+/// `deletedAt`, the tombstone marking it removed. Checked in this order.
+private let clockFields = ["updatedAt", "deletedAt"]
+
+private let daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+private func isLeapYear(_ y: Int) -> Bool { (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 }
+
+/// `Math.floor(a / b)` on integers — Swift's own `/` truncates toward zero,
+/// which differs for the negative year `daysFromCivil` can reach.
+private func floorDiv(_ a: Int, _ b: Int) -> Int {
+    let q = a / b
+    return (a % b != 0 && ((a < 0) != (b < 0))) ? q - 1 : q
+}
+
+/// `daysFromCivil(y, mo, d)` — days from 1970-01-01 to a proleptic-Gregorian
+/// date; integer arithmetic only, so both apps count the same days.
+private func daysFromCivil(_ y: Int, _ mo: Int, _ d: Int) -> Int {
+    let yy = mo <= 2 ? y - 1 : y
+    let era = floorDiv(yy, 400)
+    let yoe = yy - era * 400
+    let doy = floorDiv(153 * (mo + (mo > 2 ? -3 : 9)) + 2, 5) + d - 1
+    let doe = yoe * 365 + floorDiv(yoe, 4) - floorDiv(yoe, 100) + doy
+    return era * 146097 + doe - 719468
+}
+
+/// `clockInstant(text)` — a clock's instant in milliseconds since
+/// 1970-01-01T00:00:00Z, or nil when the text is not an ISO-8601 instant:
+/// `YYYY-MM-DDTHH:MM:SS`, optionally a fraction of a second, then an explicit
+/// zone — `Z` or `±HH:MM`. Read code unit by code unit rather than by
+/// `DateFormatter`, exactly as the web app reads it rather than by
+/// `Date.parse`: two clocks must order the same way in both apps or the
+/// ordering rule below means nothing.
+public func clockInstant(_ text: String) -> Double? {
+    let t = Array(text.utf16)
+    func charAt(_ i: Int) -> Int { i >= 0 && i < t.count ? Int(t[i]) : -1 }
+    func digitAt(_ i: Int) -> Int { let c = charAt(i); return c >= 48 && c <= 57 ? c - 48 : -1 }
+    func numAt(_ i: Int, _ n: Int) -> Int {
+        var v = 0
+        for k in 0..<n {
+            let d = digitAt(i + k)
+            if d < 0 { return -1 }
+            v = v * 10 + d
+        }
+        return v
+    }
+    let y = numAt(0, 4), mo = numAt(5, 2), d = numAt(8, 2)
+    let h = numAt(11, 2), mi = numAt(14, 2), se = numAt(17, 2)
+    if y < 0 || mo < 0 || d < 0 || h < 0 || mi < 0 || se < 0 { return nil }
+    if charAt(4) != 45 || charAt(7) != 45 || charAt(10) != 84 { return nil }
+    if charAt(13) != 58 || charAt(16) != 58 { return nil }
+    if mo < 1 || mo > 12 { return nil }
+    let dim = mo == 2 && isLeapYear(y) ? 29 : daysInMonth[mo - 1]
+    if d < 1 || d > dim { return nil }
+    if h > 23 || mi > 59 || se > 59 { return nil }
+    var i = 19
+    var ms = 0
+    if charAt(i) == 46 {
+        i += 1
+        var n = 0
+        while digitAt(i) >= 0 {
+            if n < 3 { ms = ms * 10 + digitAt(i) }
+            n += 1
+            i += 1
+        }
+        if n == 0 { return nil }
+        while n < 3 { ms *= 10; n += 1 }
+    }
+    let z = charAt(i)
+    var offset = 0
+    if z == 90 {
+        i += 1
+    } else if z == 43 || z == 45 {
+        let oh = numAt(i + 1, 2), om = numAt(i + 4, 2)
+        if oh < 0 || om < 0 || charAt(i + 3) != 58 { return nil }
+        if oh > 23 || om > 59 { return nil }
+        offset = (z == 43 ? 1 : -1) * (oh * 60 + om)
+        i += 6
+    } else {
+        return nil
+    }
+    if i != t.count { return nil }
+    return Double((daysFromCivil(y, mo, d) * 86400 + h * 3600 + mi * 60 + se - offset * 60) * 1000 + ms)
+}
+
+/// `checkClocks(el, subject, …)` — one element's clocks: each must read as an
+/// ISO-8601 instant, and a tombstone cannot predate the change it ends. An
+/// absent or empty clock is simply unset and says nothing. `subject` names the
+/// element the way the rest of these messages name it.
+private func checkClocks(
+    _ updatedAt: String?, _ deletedAt: String?, _ subject: String,
+    _ diagramId: String?, _ target: IssueTarget?, _ targetId: String?,
+    _ add: (IssueSeverity, String, String, String?, IssueTarget?, String?) -> Void
+) {
+    var at: [Double?] = [nil, nil]
+    let values = [updatedAt, deletedAt]
+    for (i, field) in clockFields.enumerated() {
+        guard let value = values[i], !value.isEmpty else { continue }
+        guard let instant = clockInstant(value) else {
+            add(.error, "provenance-date", "\(subject): \(field) reads “\(value)”, which is not an ISO-8601 instant. Write it as 2026-09-27T14:05:00Z, or clear it.", diagramId, target, targetId)
+            continue
+        }
+        at[i] = instant
+    }
+    if let u = at[0], let dd = at[1], dd < u {
+        add(.error, "provenance-order", "\(subject): deletedAt (\(deletedAt ?? "")) is earlier than updatedAt (\(updatedAt ?? "")). Nothing can have been deleted before the last change to it; correct one of the two.", diagramId, target, targetId)
+    }
+}
+
 /// `validate(m)` — every rule violation in the model, errors first and each
 /// severity in the order it was found.
 public func validate(_ model: IDEF0Model) -> [ValidationIssue] {
@@ -87,6 +198,9 @@ public func validate(_ model: IDEF0Model) -> [ValidationIssue] {
         // Node numbers are unique.
         if nodeSeen.contains(JSStringKey(dg.node)) { add(.error, "node-dup", "Node number \(dg.node) is used by more than one diagram.", dg.id) }
         nodeSeen.insert(JSStringKey(dg.node))
+
+        // The diagram's own clocks.
+        checkClocks(dg.updatedAt, dg.deletedAt, dg.node, dg.id, nil, nil, add)
 
         // Box count (§3.3.3 rule 4).
         let count = dg.boxes.count
@@ -181,6 +295,8 @@ public func validate(_ model: IDEF0Model) -> [ValidationIssue] {
             if named, let c = m.conceptById(b.conceptId), c.kind == "data" || c.kind == "mechanism" {
                 add(.warning, "concept-kind", "\(node) is bound to “\(c.term)”, which the glossary records as \(c.kind). A box denotes an activity.", dg.id, .box, b.id)
             }
+
+            checkClocks(b.updatedAt, b.deletedAt, node, dg.id, .box, b.id, add)
         }
 
         // Per-arrow rules. Messages quote `a.label || 'unlabelled'`: an
@@ -236,6 +352,8 @@ public func validate(_ model: IDEF0Model) -> [ValidationIssue] {
             if !jsTrim(a.label).isEmpty, let c = m.conceptById(a.conceptId), c.kind == "activity" {
                 add(.warning, "concept-kind", "“\(a.label)” on \(dg.node) is bound to activity “\(c.term)”. An arrow denotes an object; give it a distinct term or change the concept’s kind.", dg.id, .arrow, a.id)
             }
+
+            checkClocks(a.updatedAt, a.deletedAt, "“\(shown)” on \(dg.node)", dg.id, .arrow, a.id, add)
         }
 
         // Parent / child ICOM consistency, in box-number order.
@@ -264,6 +382,8 @@ public func validate(_ model: IDEF0Model) -> [ValidationIssue] {
         return (ctx.id, nil, nil)
     }
     for g in m.glossary {
+        let clockTarget = target([g.id])
+        checkClocks(g.updatedAt, g.deletedAt, "“\(g.term)”", clockTarget.0, clockTarget.1, clockTarget.2, add)
         if let uses = used[JSStringKey(g.id)], jsTrim(g.definition).isEmpty {
             let first = m.occurrencesOf(g.id).first
             add(.warning, "concept-undefined",

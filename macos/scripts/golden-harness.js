@@ -398,6 +398,43 @@ export const scenarios = [
     { op: 'moveBox', diagram: 'A0', name: 'Plan Production', by: -1 },
     { op: 'moveBox', diagram: 'A0', name: 'Assemble Product', by: 1 },
   ] },
+  // The per-element clocks (src/io/json.js): set on a diagram, a box, an
+  // arrow and a concept, each in a different ISO-8601 zone form, they are
+  // written after everything else the element models and nothing complains.
+  { name: 'clocks', ops: [
+    { op: 'setDiagram', diagram: 'A0', field: 'updatedAt', value: '2026-09-25T11:30:00.500+02:00' },
+    { op: 'setBox', diagram: 'A0', name: 'Plan Production', field: 'updatedAt', value: '2026-09-26T09:15:00Z' },
+    { op: 'setBox', diagram: 'A0', name: 'Ship Product', field: 'deletedAt', value: '2026-09-26T10:00:00Z' },
+    { op: 'setArrow', diagram: 'A0', label: 'Customer Order', field: 'updatedAt', value: '2026-09-26T09:20:00Z' },
+    { op: 'setArrow', diagram: 'A0', label: 'Customer Order', field: 'deletedAt', value: '2026-09-26T09:21:00Z' },
+    { op: 'setConcept', term: 'Components', field: 'updatedAt', value: '2026-09-24T08:00:00+00:00' },
+  ] },
+  // A clock that is not an ISO-8601 instant: a word, an instant with no zone
+  // at all, a day February never has, and an hour past 23 — one
+  // provenance-date error each, whichever element carries it.
+  { name: 'clocks-unreadable', ops: [
+    { op: 'setBox', diagram: 'A0', name: 'Plan Production', field: 'updatedAt', value: 'yesterday' },
+    { op: 'setArrow', diagram: 'A0', label: 'Raw Materials', field: 'deletedAt', value: '2026-09-26T09:15:00' },
+    { op: 'setConcept', term: 'Components', field: 'deletedAt', value: '2026-02-30T00:00:00Z' },
+    { op: 'setDiagram', diagram: 'A-0', field: 'updatedAt', value: '2026-09-26T24:00:00Z' },
+  ] },
+  // A tombstone earlier than the change it ends — once by a millisecond, and
+  // once only after both zones are applied, which is what the clocks are
+  // ordered by.
+  { name: 'clocks-out-of-order', ops: [
+    { op: 'setArrow', diagram: 'A0', label: 'Customer Order', field: 'updatedAt', value: '2026-09-26T09:20:00Z' },
+    { op: 'setArrow', diagram: 'A0', label: 'Customer Order', field: 'deletedAt', value: '2026-09-26T09:19:59.999Z' },
+    { op: 'setConcept', term: 'Components', field: 'updatedAt', value: '2026-09-26T12:00:00+02:00' },
+    { op: 'setConcept', term: 'Components', field: 'deletedAt', value: '2026-09-26T09:59:00Z' },
+  ] },
+  // An empty or null clock is unset: no member is written, so the file is the
+  // baseline's byte for byte and the checker has nothing to say.
+  { name: 'clocks-unset', ops: [
+    { op: 'setDiagram', diagram: 'A0', field: 'deletedAt', value: null },
+    { op: 'setBox', diagram: 'A0', name: 'Plan Production', field: 'updatedAt', value: '' },
+    { op: 'setArrow', diagram: 'A0', label: 'Customer Order', field: 'deletedAt', value: null },
+    { op: 'setConcept', term: 'Components', field: 'updatedAt', value: '' },
+  ] },
   // An explicit Arrange puts hand-placed (or imported) boxes back on the
   // staircase in their number order without touching the numbers.
   { name: 'arrange', ops: [
@@ -424,6 +461,11 @@ export const apply = (m, op) => {
     case 'addArrow': dg.arrows.push({ id: op.id, label: op.label, conceptId: null, from: resolveEnd(dg, op.from), to: resolveEnd(dg, op.to), bend: op.bend ?? null, ldx: 0, ldy: 0, tunnelFrom: false, tunnelTo: false, note: '' }); break;
     case 'swapPos': { const [p, q] = op.labels.map((l) => arrowByLabel(dg, l)); const t = p[op.end].pos; p[op.end].pos = q[op.end].pos; q[op.end].pos = t; break; }
     case 'pushBox': dg.boxes.push({ id: op.id, name: op.name, number: op.number, conceptId: null, x: op.x, y: op.y, w: op.w, h: op.h, childDiagramId: null, note: '', refs: '' }); break;
+    // S05: a diagram's or a concept's own field, the way setBox/setArrow write
+    // a box's or an arrow's — the only way to reach the per-element clocks
+    // those two carry.
+    case 'setDiagram': dg[op.field] = op.value; break;
+    case 'setConcept': C.findConcept(m, op.term)[op.field] = op.value; break;
     case 'renumberBoxes': M.renumberBoxes(dg); break;
     case 'renumberNodes': M.renumberNodes(m); break;
     // F85: a child diagram's staircase boxes are unnamed, so decompose (like

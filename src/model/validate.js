@@ -18,6 +18,120 @@ const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const RESERVED_BOX = new Set(['function', 'activity', 'process', 'input', 'output', 'control', 'mechanism']);
 const RESERVED_ARROW = new Set([...RESERVED_BOX, 'call']);
 
+/* ------------------------------------------------- the per-element clocks */
+
+/**
+ * The optional clocks a box, arrow, diagram or concept carries (see
+ * src/io/json.js): `updatedAt`, when the element last changed, and
+ * `deletedAt`, the tombstone marking it removed. Checked in this order.
+ */
+const CLOCK_FIELDS = ['updatedAt', 'deletedAt'];
+
+const charAt = (t, i) => (i >= 0 && i < t.length ? t.charCodeAt(i) : -1);
+const digitAt = (t, i) => { const c = charAt(t, i); return c >= 48 && c <= 57 ? c - 48 : -1; };
+/** The `n`-digit decimal at `i`, or -1 if any of those characters is not one. */
+const numAt = (t, i, n) => {
+  let v = 0;
+  for (let k = 0; k < n; k += 1) {
+    const d = digitAt(t, i + k);
+    if (d < 0) return -1;
+    v = v * 10 + d;
+  }
+  return v;
+};
+
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const isLeapYear = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+/** Days from 1970-01-01 to a proleptic-Gregorian date; integer arithmetic
+ *  only, so both apps count the same days. */
+function daysFromCivil(y, mo, d) {
+  const yy = mo <= 2 ? y - 1 : y;
+  const era = Math.floor(yy / 400);
+  const yoe = yy - era * 400;
+  const doy = Math.floor((153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146097 + doe - 719468;
+}
+
+/**
+ * A clock's instant in milliseconds since 1970-01-01T00:00:00Z, or null when
+ * the text is not an ISO-8601 instant: `YYYY-MM-DDTHH:MM:SS`, optionally a
+ * fraction of a second, then an explicit zone — `Z` or `±HH:MM`. Read
+ * character by character rather than by `Date.parse`, which accepts a great
+ * deal more and differs between engines; two clocks must order the same way
+ * in both apps or the ordering rule below means nothing.
+ */
+export function clockInstant(text) {
+  const t = String(text ?? '');
+  const y = numAt(t, 0, 4);
+  const mo = numAt(t, 5, 2);
+  const d = numAt(t, 8, 2);
+  const h = numAt(t, 11, 2);
+  const mi = numAt(t, 14, 2);
+  const se = numAt(t, 17, 2);
+  if (y < 0 || mo < 0 || d < 0 || h < 0 || mi < 0 || se < 0) return null;
+  if (charAt(t, 4) !== 45 || charAt(t, 7) !== 45 || charAt(t, 10) !== 84) return null;
+  if (charAt(t, 13) !== 58 || charAt(t, 16) !== 58) return null;
+  if (mo < 1 || mo > 12) return null;
+  const dim = mo === 2 && isLeapYear(y) ? 29 : DAYS_IN_MONTH[mo - 1];
+  if (d < 1 || d > dim) return null;
+  if (h > 23 || mi > 59 || se > 59) return null;
+  let i = 19;
+  let ms = 0;
+  if (charAt(t, i) === 46) {
+    i += 1;
+    let n = 0;
+    while (digitAt(t, i) >= 0) {
+      if (n < 3) ms = ms * 10 + digitAt(t, i);
+      n += 1;
+      i += 1;
+    }
+    if (n === 0) return null;
+    while (n < 3) { ms *= 10; n += 1; }
+  }
+  const z = charAt(t, i);
+  let offset = 0;
+  if (z === 90) {
+    i += 1;
+  } else if (z === 43 || z === 45) {
+    const oh = numAt(t, i + 1, 2);
+    const om = numAt(t, i + 4, 2);
+    if (oh < 0 || om < 0 || charAt(t, i + 3) !== 58) return null;
+    if (oh > 23 || om > 59) return null;
+    offset = (z === 43 ? 1 : -1) * (oh * 60 + om);
+    i += 6;
+  } else {
+    return null;
+  }
+  if (i !== t.length) return null;
+  return (daysFromCivil(y, mo, d) * 86400 + h * 3600 + mi * 60 + se - offset * 60) * 1000 + ms;
+}
+
+/**
+ * One element's clocks: each must read as an ISO-8601 instant, and a
+ * tombstone cannot predate the change it ends. An absent, null or empty
+ * clock is simply unset and says nothing. `subject` names the element the way
+ * the rest of these messages name it.
+ */
+function checkClocks(el, subject, diagramId, kind, id, add) {
+  const at = {};
+  for (const field of CLOCK_FIELDS) {
+    if (el[field] === undefined || el[field] === null) continue;
+    const value = String(el[field]);
+    if (!value) continue;
+    const t = clockInstant(value);
+    if (t === null) {
+      add('error', 'provenance-date', `${subject}: ${field} reads “${value}”, which is not an ISO-8601 instant. Write it as 2026-09-27T14:05:00Z, or clear it.`, diagramId, kind, id);
+    } else {
+      at[field] = t;
+    }
+  }
+  if (at.updatedAt !== undefined && at.deletedAt !== undefined && at.deletedAt < at.updatedAt) {
+    add('error', 'provenance-order', `${subject}: deletedAt (${String(el.deletedAt)}) is earlier than updatedAt (${String(el.updatedAt)}). Nothing can have been deleted before the last change to it; correct one of the two.`, diagramId, kind, id);
+  }
+}
+
 export function validate(m) {
   const issues = [];
   const add = (severity, code, message, diagramId, kind = null, id = null) =>
@@ -41,6 +155,9 @@ export function validate(m) {
     /* ---- node numbers are unique ---- */
     if (nodeSeen.has(dg.node)) add('error', 'node-dup', `Node number ${dg.node} is used by more than one diagram.`, dg.id);
     nodeSeen.set(dg.node, dg.id);
+
+    /* ---- the diagram's own clocks ---- */
+    checkClocks(dg, dg.node, dg.id, null, null, add);
 
     /* ---- box count ---- */
     if (isContext) {
@@ -133,6 +250,8 @@ export function validate(m) {
       if (b.name.trim() && bc && (bc.kind === 'data' || bc.kind === 'mechanism')) {
         add('warning', 'concept-kind', `${node} is bound to “${bc.term}”, which the glossary records as ${bc.kind}. A box denotes an activity.`, dg.id, 'box', b.id);
       }
+
+      checkClocks(b, node, dg.id, 'box', b.id, add);
     }
 
     /* ---- per-arrow rules ---- */
@@ -186,6 +305,8 @@ export function validate(m) {
       if (a.label.trim() && ac && ac.kind === 'activity') {
         add('warning', 'concept-kind', `“${a.label}” on ${dg.node} is bound to activity “${ac.term}”. An arrow denotes an object; give it a distinct term or change the concept’s kind.`, dg.id, 'arrow', a.id);
       }
+
+      checkClocks(a, `“${a.label || 'unlabelled'}” on ${dg.node}`, dg.id, 'arrow', a.id, add);
     }
 
     /* ---- parent / child ICOM consistency ---- */
@@ -217,6 +338,7 @@ export function validate(m) {
     return [ctx.id, null, null];
   };
   for (const g of m.glossary) {
+    checkClocks(g, `“${g.term}”`, ...target([g.id]), add);
     if (used.has(g.id) && !g.definition.trim()) {
       const first = occurrencesOf(m, g.id)[0];
       add('warning', 'concept-undefined',

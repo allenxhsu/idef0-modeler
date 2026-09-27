@@ -9,7 +9,8 @@
 //
 // The writer always emits `version="2"`: titleLocked as a diagram attribute,
 // box refs and diagram notes when present, a bundle's members as <member>
-// children of its <term>, a single <extensions> element for unknown
+// children of its <term>, the per-element clocks as attributes where an
+// element carries them, a single <extensions> element for unknown
 // model/glossary members, activities in array order, and numbers at full
 // precision. A reader seeing `version="2"` or higher reads text content
 // untrimmed and restores all of that; one seeing `version="1"` or no version
@@ -18,8 +19,8 @@
 // that files written before this version, or by another tool, keep reading
 // the same way.
 // See doc/idef0-xml.md for the exact contract and what still does not survive
-// (diagram/box/arrow-level extras; XML 1.0-forbidden control characters,
-// replaced with U+FFFD).
+// (per-element extras; XML 1.0-forbidden control characters, replaced with
+// U+FFFD).
 
 import { uid } from '../util.js';
 import { SIDE_ICOM } from '../model/types.js';
@@ -34,9 +35,31 @@ export const XML_NS = 'urn:idef0-modeler:xml:1';
 // json.js.
 const KNOWN_MODEL_KEYS = ['schema', 'id', 'title', 'author', 'project', 'purpose', 'viewpoint',
   'status', 'created', 'revised', 'glossary', 'diagrams', 'rootDiagramId'];
-const KNOWN_CONCEPT_KEYS = ['id', 'term', 'kind', 'definition', 'members'];
+const KNOWN_CONCEPT_KEYS = ['id', 'term', 'kind', 'definition', 'members', 'updatedAt', 'deletedAt'];
 
 const extrasOf = (o, keys) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
+
+/**
+ * The per-element clocks (src/io/json.js) as attributes, written only when
+ * set, so an element that carries neither is written exactly as before. A
+ * version-1 reader ignores an attribute it does not know, and this one reads
+ * them for version 2 or higher only.
+ */
+const clockAttrs = (o) => ['updatedAt', 'deletedAt']
+  .map((k) => (o[k] ? ` ${k}="${xmlAttr(String(o[k]))}"` : ''))
+  .join('');
+
+/** The clocks an element's attributes carry, for version 2 or higher: an
+ *  absent or empty attribute is unset and writes no member at all. */
+const readClocks = (el, v2) => {
+  const out = {};
+  if (!v2) return out;
+  for (const k of ['updatedAt', 'deletedAt']) {
+    const v = el.getAttribute(k);
+    if (v) out[k] = v;
+  }
+  return out;
+};
 
 /* ------------------------------------------------------------------ write */
 
@@ -61,14 +84,14 @@ export function toXml(model) {
     // elements, on the same line: the reader takes the definition from the
     // element's whole text content, so no whitespace may sit between them.
     const members = (Array.isArray(g.members) ? g.members : []).map((id) => `<member id="${xmlAttr(id)}"/>`).join('');
-    L.push(`    <term id="${xmlAttr(g.id)}" name="${xmlAttr(g.term)}" kind="${xmlAttr(g.kind)}">${xmlText(g.definition)}${members}</term>`);
+    L.push(`    <term id="${xmlAttr(g.id)}" name="${xmlAttr(g.term)}" kind="${xmlAttr(g.kind)}"${clockAttrs(g)}>${xmlText(g.definition)}${members}</term>`);
   }
   L.push('  </glossary>');
 
   L.push('  <diagrams>');
   for (const dg of Object.values(model.diagrams)) {
     const codes = icomCodes(model, dg);
-    L.push(`    <diagram id="${xmlAttr(dg.id)}" node="${xmlAttr(dg.node)}" titleLocked="${dg.titleLocked ? 'true' : 'false'}"${dg.parentBoxId ? ` parentBox="${xmlAttr(dg.parentBoxId)}"` : ''}${dg.id === model.rootDiagramId ? ' context="true"' : ''}>`);
+    L.push(`    <diagram id="${xmlAttr(dg.id)}" node="${xmlAttr(dg.node)}" titleLocked="${dg.titleLocked ? 'true' : 'false'}"${dg.parentBoxId ? ` parentBox="${xmlAttr(dg.parentBoxId)}"` : ''}${dg.id === model.rootDiagramId ? ' context="true"' : ''}${clockAttrs(dg)}>`);
     L.push(`      <title>${xmlText(dg.title)}</title>`);
     if (dg.cNumber) L.push(`      <cNumber>${xmlText(dg.cNumber)}</cNumber>`);
     if (dg.notes && dg.notes.length) L.push(`      <notes>${xmlText(JSON.stringify(dg.notes))}</notes>`);
@@ -76,7 +99,7 @@ export function toXml(model) {
     // Array order, not number order: the file reflects the model's own array,
     // which the reader already rebuilds from the `number` attribute alone.
     for (const b of dg.boxes) {
-      L.push(`        <activity id="${xmlAttr(b.id)}" number="${b.number}" node="${xmlAttr(boxNode(dg, b))}"${b.conceptId ? ` concept="${xmlAttr(b.conceptId)}"` : ''}${b.childDiagramId ? ` detail="${xmlAttr(b.childDiagramId)}"` : ''}>`);
+      L.push(`        <activity id="${xmlAttr(b.id)}" number="${b.number}" node="${xmlAttr(boxNode(dg, b))}"${b.conceptId ? ` concept="${xmlAttr(b.conceptId)}"` : ''}${b.childDiagramId ? ` detail="${xmlAttr(b.childDiagramId)}"` : ''}${clockAttrs(b)}>`);
       L.push(`          <name>${xmlText(b.name)}</name>`);
       L.push(`          <bounds x="${num(b.x)}" y="${num(b.y)}" width="${num(b.w)}" height="${num(b.h)}"/>`);
       if (b.refs) L.push(`          <refs>${xmlText(b.refs)}</refs>`);
@@ -87,7 +110,7 @@ export function toXml(model) {
     L.push('      <arrows>');
     for (const a of dg.arrows) {
       const role = arrowRole(a);
-      L.push(`        <arrow id="${xmlAttr(a.id)}" role="${role}"${a.conceptId ? ` concept="${xmlAttr(a.conceptId)}"` : ''}>`);
+      L.push(`        <arrow id="${xmlAttr(a.id)}" role="${role}"${a.conceptId ? ` concept="${xmlAttr(a.conceptId)}"` : ''}${clockAttrs(a)}>`);
       L.push(`          <label>${xmlText(a.label)}</label>`);
       L.push(`          ${endpointXml('source', a, 'from', codes)}`);
       L.push(`          ${endpointXml('destination', a, 'to', codes)}`);
@@ -225,6 +248,7 @@ export function fromXml(text) {
         id: n.getAttribute('id') || uid('gl'), term: n.getAttribute('name') || '', kind: n.getAttribute('kind') || 'other',
         definition,
         ...(members.length ? { members } : {}),
+        ...readClocks(n, v2),
       };
     }),
   });
@@ -242,6 +266,7 @@ export function fromXml(text) {
       parentBoxId: d.getAttribute('parentBox') || null,
       cNumber: childText(d, 'cNumber') ?? '',
       boxes: [], arrows: [], notes: readNotes(v2 ? d.querySelector(':scope > notes') : null),
+      ...readClocks(d, v2),
     };
     for (const a of d.querySelectorAll('activities > activity')) {
       const b = a.querySelector(':scope > bounds');
@@ -257,6 +282,7 @@ export function fromXml(text) {
         childDiagramId: a.getAttribute('detail') || null,
         note: childText(a, 'note') ?? '',
         refs: v2 ? (childText(a, 'refs') ?? '') : '',
+        ...readClocks(a, v2),
       });
     }
     for (const a of d.querySelectorAll('arrows > arrow')) {
@@ -276,6 +302,7 @@ export function fromXml(text) {
         tunnelFrom: src?.getAttribute('tunnelled') === 'true',
         tunnelTo: dst?.getAttribute('tunnelled') === 'true',
         note: childText(a, 'note') ?? '',
+        ...readClocks(a, v2),
       });
     }
     // A second diagram with the same id would silently replace the first.

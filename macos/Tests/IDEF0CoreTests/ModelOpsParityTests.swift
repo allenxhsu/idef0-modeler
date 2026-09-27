@@ -25,6 +25,9 @@ struct ModelOpsParityTests {
         "deleteSubtree",
         // S01: layout, ports and the reading-order move.
         "moveBox", "layout", "connectPort",
+        // S05: a diagram's or a concept's own field, written directly — the
+        // per-element clocks need nothing beyond the model itself.
+        "setDiagram", "setConcept",
     ]
 
     /// Ops that reach into another module: `renameConcept`, `relabelBox`,

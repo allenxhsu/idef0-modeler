@@ -13,6 +13,11 @@
 //   Endpoint { type:'box', boxId, side, pos } | { type:'boundary', side, pos }
 //   Concept  { id, term, kind, definition, members? }
 //
+// A box, arrow, diagram and concept may also carry the optional per-element
+// clocks `updatedAt` and `deletedAt` (ISO-8601 instants; `deletedAt` is a
+// tombstone marking the element removed). Neither is ever invented, so an
+// element the file records none for round-trips unchanged. See src/io/json.js.
+//
 // A concept whose `members` lists other concepts is a *bundle* (FIPS 183
 // §3.2.2.3): the bundle carries the general label, its members the specific
 // ones. Boxes and arrows always bind to the specific concept; the bundle is
