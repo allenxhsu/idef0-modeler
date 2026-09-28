@@ -5,8 +5,9 @@
  *   initTheme({ app: 'idef0' });
  *
  * State is three attributes on <html>, which is all the CSS keys off:
- *   data-sc            skin on (absent = the app's own classic styling)
- *   data-race          steel | crystal | chitin
+ *   data-sc            "" for the HUD skin, "mac" for the macOS skin
+ *   data-race          steel | crystal | chitin under the HUD skin;
+ *                      light | dark under the macOS skin (Auto follows the system)
  *   data-app           one of APPS below (the app's identity colour)
  * plus data-sc-effects="off" to drop the decorative overlays, and
  * data-sc-mac-inset when a desktop build hides the macOS title bar.
@@ -15,8 +16,14 @@
  * served from the same origin therefore share a race choice automatically.
  */
 
+export const SKINS = ['hud', 'mac'];
+export const SKIN_LABELS = { hud: 'HUD', mac: 'macOS' };
+/** The HUD palettes. The macOS skin has light and dark instead; see APPEARANCES. */
 export const RACES = ['steel', 'crystal', 'chitin'];
 export const RACE_LABELS = { steel: 'Steel', crystal: 'Crystal', chitin: 'Chitin' };
+/** The macOS skin's appearance: follow the system, or force one. */
+export const APPEARANCES = ['system', 'light', 'dark'];
+export const APPEARANCE_LABELS = { system: 'Auto', light: 'Light', dark: 'Dark' };
 /** Every app in the suite, i.e. the valid data-app values. Colours live in tokens/tokens.json. */
 export const APPS = ['heptabase', 'idef0', 'sysml', 'project', 'pyramid', 'profiler', 'hypermail', 'metropolis', 'habit', 'bom'];
 
@@ -26,7 +33,8 @@ export const APPS = ['heptabase', 'idef0', 'sysml', 'project', 'pyramid', 'profi
  */
 const LEGACY = {
   race: { terran: 'steel', protoss: 'crystal', zerg: 'chitin' },
-  skin: { starcraft: 'hud' },
+  // 'classic' (the app's own styling) was retired; it reads as the HUD.
+  skin: { starcraft: 'hud', classic: 'hud' },
   app: { mindmap: 'metropolis' },
 };
 
@@ -34,7 +42,10 @@ const KEY = {
   skin: 'ui-kit.skin',
   race: 'ui-kit.race',
   effects: 'ui-kit.effects',
+  appearance: 'ui-kit.appearance',
 };
+
+const darkQuery = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null);
 
 const EVENT = 'ui-kit:change';
 
@@ -65,19 +76,24 @@ export function getTheme() {
   migrate(KEY.race, LEGACY.race);
   migrate(KEY.skin, LEGACY.skin);
   const race = read(KEY.race, 'steel');
+  const skin = read(KEY.skin, 'hud');
+  const appearance = read(KEY.appearance, 'system');
+  const wanted = APPEARANCES.includes(appearance) ? appearance : 'system';
   return {
-    skin: read(KEY.skin, 'hud') === 'classic' ? 'classic' : 'hud',
+    skin: SKINS.includes(skin) ? skin : 'hud',
     race: RACES.includes(race) ? race : 'steel',
     effects: read(KEY.effects, 'on') === 'off' ? 'off' : 'on',
+    appearance: wanted,
+    // The appearance the macOS skin actually shows once Auto is resolved.
+    mode: wanted === 'system' ? (darkQuery()?.matches ? 'dark' : 'light') : wanted,
   };
 }
 
 /** Writes the current preferences onto <html>. */
 export function applyTheme({ app, root = document.documentElement, macInset } = {}) {
   const t = getTheme();
-  if (t.skin === 'hud') root.setAttribute('data-sc', '');
-  else root.removeAttribute('data-sc');
-  root.setAttribute('data-race', t.race);
+  root.setAttribute('data-sc', t.skin === 'mac' ? 'mac' : '');
+  root.setAttribute('data-race', t.skin === 'mac' ? t.mode : t.race);
   if (t.effects === 'off') root.setAttribute('data-sc-effects', 'off');
   else root.removeAttribute('data-sc-effects');
   if (app) root.setAttribute('data-app', LEGACY.app[app] ?? app);
@@ -100,6 +116,12 @@ export function initTheme({ app, macInset } = {}) {
       window.dispatchEvent(new CustomEvent(EVENT, { detail: getTheme() }));
     }
   });
+  // Auto follows the system: re-apply when it flips.
+  darkQuery()?.addEventListener('change', () => {
+    if (getTheme().appearance !== 'system') return;
+    applyTheme();
+    window.dispatchEvent(new CustomEvent(EVENT, { detail: getTheme() }));
+  });
   return t;
 }
 
@@ -110,9 +132,10 @@ function update(key, value) {
   return t;
 }
 
-export const setSkin = (skin) => update(KEY.skin, skin === 'classic' ? 'classic' : 'hud');
+export const setSkin = (skin) => update(KEY.skin, SKINS.includes(skin) ? skin : 'hud');
 export const setRace = (race) => update(KEY.race, RACES.includes(race) ? race : 'steel');
 export const setEffects = (on) => update(KEY.effects, on ? 'on' : 'off');
+export const setAppearance = (appearance) => update(KEY.appearance, APPEARANCES.includes(appearance) ? appearance : 'system');
 
 /** Subscribe to preference changes. Returns an unsubscribe function. */
 export function onThemeChange(callback) {
