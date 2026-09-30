@@ -15,6 +15,7 @@ import { fromXml } from './io/idef0xml.js';
 import { findBoxAnywhere, findBox } from './model/model.js';
 import { initPortal } from './portal.js';
 import { initPersistence } from './state/persistence.js';
+import { initSync, onSyncChange } from './sync/index.js';
 
 /* ------------------------------------------------------------------ tabs */
 
@@ -176,7 +177,10 @@ initCanvas();
   // worth knowing but worth nothing at all if it delays the first paint. The
   // Model panel shows "Checking…" until this lands and redraws it.
   initPersistence(() => renderModelProps());
-  const saved = readAutosave();
+  // The recovery copy now comes out of the browser store rather than out of
+  // localStorage, so reading it is a promise. It is awaited here, where the
+  // app was already waiting on the user's answer to the restore dialog.
+  const saved = await readAutosave();
   if (saved?.model) {
     const when = new Date(saved.at).toLocaleString();
     // The autosave is the only copy of unsaved work, so it is deleted only on
@@ -211,4 +215,12 @@ initCanvas();
   renderAll();
   renderCanvas();
   fitToWindow();
+
+  // Saving online comes last: the model on screen is settled, so the first sync
+  // has something to stage and an adopted version has something to replace.
+  // Off the Portal, and with no server configured, this wires nothing and makes
+  // no request. The panels redraw whenever the service's state changes — a sync
+  // finishing, a session running out, the settings being edited.
+  onSyncChange(() => { renderToolbar(); renderModelProps(); renderChecks(); });
+  initSync().catch((e) => { console.warn('Saving online could not be started.', e); });
 })();

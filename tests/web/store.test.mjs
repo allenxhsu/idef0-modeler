@@ -1,8 +1,10 @@
 // DOM-free checks of src/state/store.js. Run with:  node --test tests/web/
 //
 // The store is a module singleton, so every test starts by loading a fresh
-// sample model. localStorage is stubbed because autosave is best-effort and
-// the tests need to see what it wrote.
+// sample model. The autosave now lives in the browser record store's meta
+// space rather than in localStorage, so a MemoryStore is injected in place of
+// IndexedDB and the tests read what it holds. localStorage is still stubbed:
+// the settings and the device id remain there, and the migration reads it.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,9 +16,19 @@ globalThis.localStorage = {
   removeItem: (k) => { memory.delete(k); },
 };
 
+const { MemoryStore } = await import(new URL('../../sync-kit/js/stores/memory.js', import.meta.url));
+const {
+  setLocalStore, AUTOSAVE_META, QUARANTINE_META,
+} = await import(new URL('../../src/state/localStore.js', import.meta.url));
+
+/** The browser's store, as a Map: what IndexedDB holds in a real browser. */
+const browser = new MemoryStore('test');
+setLocalStore(browser);
+
 const {
   store, set, commit, undo, redo, loadModel, currentDiagram, goToDiagram,
   canUndo, canRedo, undoLabel, markSaved, markRecovered, readAutosave, quarantineAutosave,
+  flushAutosave,
 } = await import(new URL('../../src/state/store.js', import.meta.url));
 const { buildSampleModel } = await import(new URL('../../src/model/sample.js', import.meta.url));
 const {
@@ -24,10 +36,10 @@ const {
 } = await import(new URL('../../src/model/model.js', import.meta.url));
 const { bindAll } = await import(new URL('../../src/model/concepts.js', import.meta.url));
 
-const AUTOSAVE_KEY = 'idef0-modeler:autosave';
-const QUARANTINE_KEY = 'idef0-modeler:autosave.corrupt';
 const AUTOSAVE_SETTLE = 900;                       // the autosave timer is 700 ms
 const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
+/** The autosaved text the browser store holds, after the queue has drained. */
+const autosaved = async () => { await flushAutosave(); return browser.meta(AUTOSAVE_META); };
 const fresh = () => { memory.clear(); loadModel(buildSampleModel()); return currentDiagram(); };
 const labels = () => store._undo.map((e) => e.label);
 
@@ -119,7 +131,7 @@ test('markSaved cleans the model, clears the autosave and cancels the pending ti
   assert.equal(store.ui.fileName, 'model.idef0.json');
   assert.equal(store.ui.hint, 'Saved model.idef0.json');
   await sleep(AUTOSAVE_SETTLE);
-  assert.equal(localStorage.getItem(AUTOSAVE_KEY), null, 'a timer scheduled before the save must not rewrite the autosave');
+  assert.equal(await autosaved(), null, 'a timer scheduled before the save must not rewrite the autosave');
 });
 
 test('the autosave timer re-checks dirty before writing', async () => {
@@ -127,37 +139,38 @@ test('the autosave timer re-checks dirty before writing', async () => {
   commit('Edit model author', (m) => { m.author = 'Reviewer'; });
   store.ui.dirty = false;
   await sleep(AUTOSAVE_SETTLE);
-  assert.equal(localStorage.getItem(AUTOSAVE_KEY), null);
+  assert.equal(await autosaved(), null);
 });
 
 test('an edit is autosaved while the model is dirty', async () => {
   fresh();
   commit('Edit model author', (m) => { m.author = 'Reviewer'; });
   await sleep(AUTOSAVE_SETTLE);
-  assert.equal(readAutosave()?.model?.author, 'Reviewer');
+  assert.equal((await readAutosave())?.model?.author, 'Reviewer');
 });
 
-test('markRecovered keeps a restored model dirty and writes the autosave back at once', () => {
+test('markRecovered keeps a restored model dirty and writes the autosave back at once', async () => {
   fresh();
   // Bound before loading (F13 leaves a load that still needs binding dirty,
   // which is a different case from the one this test covers).
   loadModel(bindAll(buildSampleModel()), 'restored.idef0.json');
   assert.equal(store.ui.dirty, false);
-  assert.equal(localStorage.getItem(AUTOSAVE_KEY), null, 'loading a clean model clears the key');
+  assert.equal(await autosaved(), null, 'loading a clean model clears the copy');
   markRecovered();
   assert.equal(store.ui.dirty, true);
-  assert.equal(readAutosave()?.fileName, 'restored.idef0.json', 'written synchronously, not by the 700 ms timer');
+  assert.equal((await readAutosave())?.fileName, 'restored.idef0.json', 'written on the spot, not by the 700 ms timer');
 });
 
-test('quarantineAutosave keeps an unreadable autosave under the corrupt key', () => {
+test('quarantineAutosave keeps an unreadable autosave under the corrupt key', async () => {
   fresh();
-  localStorage.setItem(AUTOSAVE_KEY, '{not json');
-  assert.equal(readAutosave(), null);
-  quarantineAutosave();
-  assert.equal(localStorage.getItem(QUARANTINE_KEY), '{not json');
-  memory.clear();
-  quarantineAutosave();
-  assert.equal(localStorage.getItem(QUARANTINE_KEY), null, 'nothing to keep, nothing written');
+  await browser.setMeta(AUTOSAVE_META, '{not json');
+  assert.equal(await readAutosave(), null);
+  await quarantineAutosave();
+  assert.equal(await browser.meta(QUARANTINE_META), '{not json');
+  await browser.setMeta(AUTOSAVE_META, null);
+  await browser.setMeta(QUARANTINE_META, null);
+  await quarantineAutosave();
+  assert.equal(await browser.meta(QUARANTINE_META), null, 'nothing to keep, nothing written');
 });
 
 /* ------------------------------------------------- structural edits (S01) */

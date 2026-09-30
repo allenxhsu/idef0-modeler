@@ -192,3 +192,17 @@ html[data-sc]{--box:var(--sc-panel-2,#111c27)}
    is served under the Portal. A plain flex item: it takes its own height and
    the shell below keeps the rest of the viewport. Absent off the Portal. */
 #app > sc-portal-bar{flex:0 0 auto}
+
+/* The shared kit's sync readout, in the Model panel beside the storage row. It
+   brings its own type and colours; all this does is give it a line of its own. */
+.syncline{display:flex;align-items:center;gap:8px;margin:6px 0;min-height:24px;flex-wrap:wrap}
+
+/* The Open from Sync picker: one button per model, grouped by repository. */
+.picklist{max-height:50vh;overflow:auto;margin-top:6px}
+.picklist .sect{margin:10px 0 4px}
+.pickrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;
+  text-align:left;background:none;border:0;border-radius:6px;padding:6px 8px;cursor:pointer;
+  color:var(--ink);font:inherit}
+.pickrow:hover,.pickrow:focus-visible{background:var(--hover,rgba(127,127,127,.12));outline:none}
+.pickname{font-weight:600}
+.picknote{color:var(--ink-soft);font-size:11px;font-family:var(--mono);white-space:nowrap}

@@ -13,6 +13,8 @@ import { toXml, toIdl } from '../io/idef0xml.js';
 import { exportSvg, exportPng, printDiagrams, printAll } from '../io/exportImage.js';
 import { saveMarkdown, saveHtml, toMarkdown } from '../io/report.js';
 import { downloadText, slugify } from '../util.js';
+import { canSync, deleteFromSync, isSynced, moveToRepository, openFromSync, saveToSync } from './syncMenu.js';
+import { syncAfterExport } from '../sync/index.js';
 
 let openMenu = null;
 
@@ -99,19 +101,31 @@ export function renderToolbar() {
       { label: 'Load sample model', run: loadSample },
       '-',
       { label: `Save  ${store.ui.fileName || slugify(m.title) + '.idef0.json'}`, run: saveCurrent },
+      '-',
+      // The workspace commands. Greyed out rather than hidden when this browser
+      // is not syncing, so the menu says the same thing everywhere and the
+      // Model panel is where syncing is turned on.
+      { label: 'Open from Sync…', run: openFromSync, disabled: !canSync() },
+      { label: 'Save to Sync', run: saveToSync, disabled: !canSync() },
+      { label: 'Move to repository…', run: moveToRepository, disabled: !canSync() || !isSynced() },
+      { label: 'Delete from Sync…', run: deleteFromSync, disabled: !canSync() || !isSynced() },
+      ...(canSync() ? [] : [{ note: 'Turn sync on in the Model panel to save online.' }]),
     ]),
 
     menu('Export', () => [
-      { label: `SVG — this diagram (${dg?.node})`, run: () => set({ hint: `Exported ${exportSvg(m, dg)}` }) },
-      { label: `PNG — this diagram (${dg?.node})`, run: async () => set({ hint: `Exported ${await exportPng(m, dg)}` }) },
+      // Every export is a moment the work is worth getting off this browser,
+      // so each one asks for a sync afterwards (which does nothing at all when
+      // sync is off).
+      { label: `SVG — this diagram (${dg?.node})`, run: () => { set({ hint: `Exported ${exportSvg(m, dg)}` }); syncAfterExport(); } },
+      { label: `PNG — this diagram (${dg?.node})`, run: async () => { set({ hint: `Exported ${await exportPng(m, dg)}` }); syncAfterExport(); } },
       { label: `PDF — this diagram (${dg?.node})`, run: () => safePrint(() => printDiagrams(m, [dg])) },
       { label: 'PDF — every diagram (kit)', run: () => safePrint(() => printAll(m)) },
       '-',
       { label: 'IDEF0 XML interchange', run: () => { downloadText(toXml(m), `${slugify(m.title)}.idef0.xml`, 'application/xml'); set({ hint: 'Exported IDEF0 XML' }); } },
       { label: 'IDL node listing (text)', run: () => showText('IDL node listing', toIdl(m), [{ label: 'Download', run: () => downloadText(toIdl(m), `${slugify(m.title)}.idl.txt`) }]) },
       '-',
-      { label: 'Report — Markdown', run: () => set({ hint: `Exported ${saveMarkdown(m)}` }) },
-      { label: 'Report — HTML', run: () => set({ hint: `Exported ${saveHtml(m)}` }) },
+      { label: 'Report — Markdown', run: () => { set({ hint: `Exported ${saveMarkdown(m)}` }); syncAfterExport(); } },
+      { label: 'Report — HTML', run: () => { set({ hint: `Exported ${saveHtml(m)}` }); syncAfterExport(); } },
       { label: 'Report — preview', run: () => showText('Model report', toMarkdown(m), [{ label: 'Download .md', run: () => saveMarkdown(m) }]) },
       { note: 'PDF uses the browser print dialog — choose "Save as PDF".' },
     ]),
@@ -183,6 +197,9 @@ export function saveCurrent() {
   flushEdits();
   const n = saveModel(store.model, store.ui.fileName);
   markSaved(n);
+  // The file and the record carry the same bytes; a save is the moment to make
+  // sure they hold the same ones.
+  syncAfterExport();
 }
 
 function safePrint(fn) {

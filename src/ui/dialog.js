@@ -150,6 +150,41 @@ export function promptText(title, body, value = '') {
   });
 }
 
+/**
+ * Pick one thing out of a grouped list — the repositories and their models, or
+ * the repositories on their own.
+ *
+ * `groups` is `[{ name, items: [{ label, note, title, value }] }]`; a group with no
+ * items is still shown, because an empty repository is a fact worth seeing.
+ * Resolves the chosen `value`, or null when dismissed. The rows are buttons, so
+ * the keyboard reaches them the way it reaches everything else in a modal.
+ */
+export function chooseDialog(title, body, groups, { empty = 'Nothing here yet.' } = {}) {
+  return open((close) => {
+    const list = el('div', { class: 'picklist' });
+    const total = groups.reduce((n, g) => n + g.items.length, 0);
+    if (!total && !groups.length) {
+      list.appendChild(el('p', { class: 'empty', text: empty }));
+    }
+    for (const group of groups) {
+      list.appendChild(el('h3', { class: 'sect', text: group.name }));
+      if (!group.items.length) list.appendChild(el('p', { class: 'empty', text: empty }));
+      for (const item of group.items) {
+        list.appendChild(el('button', {
+          class: 'pickrow', title: item.title ?? null, onclick: () => close(item.value),
+        },
+        el('span', { class: 'pickname', text: item.label }),
+        item.note ? el('span', { class: 'picknote', text: item.note }) : null));
+      }
+    }
+    return el('div', { class: 'modal' },
+      el('h2', { text: title }),
+      el('div', { class: 'mbody' }, body ? el('p', { text: body }) : null, list),
+      el('div', { class: 'mfoot' },
+        el('button', { class: 'btn', text: 'Cancel', 'data-autofocus': '', onclick: () => close(null) })));
+  });
+}
+
 export function showText(title, text, actions = []) {
   return open((close) => el('div', { class: 'modal' },
     el('h2', { text: title }),

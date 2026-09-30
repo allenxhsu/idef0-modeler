@@ -1,19 +1,24 @@
 // Whether the browser has agreed to keep this app's data.
 //
 // A browser copy is not a copy until the browser says it will keep it: by
-// default everything in localStorage, IndexedDB and the caches sits in
+// default everything in IndexedDB, localStorage and the caches sits in
 // "best-effort" storage, which the browser is free to evict when the disk runs
-// low — quietly, and without asking. `navigator.storage.persist()` asks for
-// the other kind. Chrome answers from its own heuristics (an installed app, a
-// bookmarked site, enough engagement) without ever showing a prompt; Firefox
-// asks the person once and remembers; Safari grants it to a page added to the
-// Home Screen. Nothing here blocks, and nothing here fails: a browser that has
-// never heard of the API reports "unknown" and the app carries on as it always
-// did.
+// low — quietly, and without asking. Chrome answers from its own heuristics
+// (an installed app, a bookmarked site, enough engagement) without ever
+// showing a prompt; Firefox asks the person once and remembers; Safari grants
+// it to a page added to the Home Screen or the Dock. Nothing here blocks, and
+// nothing here fails: a browser that has never heard of the API reports
+// "unknown" and the app carries on as it always did.
 //
-// The sync kit is expected to grow a `requestPersistentStorage()` of its own,
-// with the state travelling on the sync status event. When it does, this module
-// is the one place to change: the rest of the app reads `persistenceState()`.
+// The asking and the reading are now the sync kit's `requestPersistentStorage`
+// and `storageStatus` — the same two functions the sync engine publishes on
+// every sync status event, so the Model panel's readout and `<sc-sync-status>`
+// cannot disagree about whether the store is at risk. What stays here is the
+// part that is this app's: the three states the panel shows, the advice that
+// goes with them, and the memory of having asked (a setting, which is why it
+// may stay in localStorage).
+
+import { requestPersistentStorage, storageStatus } from '../../sync-kit/js/persistence.js';
 
 /** A setting, not a record: which is why it may stay in localStorage. */
 const ASKED_KEY = 'idef0-modeler:persistence.asked';
@@ -23,8 +28,10 @@ const ASKED_KEY = 'idef0-modeler:persistence.asked';
  *
  * `state` is 'persisted' (the browser has promised to keep it), 'at-risk'
  * (best-effort: it may be evicted) or 'unknown' (no API, or not asked yet).
+ * `usage` and `quota` are the kit's bytes, or null when the browser will not
+ * say.
  */
-let current = { state: 'unknown', asked: false, supported: false };
+let current = { state: 'unknown', asked: false, supported: false, usage: null, quota: null };
 
 /** What the UI should show. Never throws, never waits. */
 export function persistenceState() {
@@ -48,25 +55,28 @@ export function persistenceAdvice(state = current.state) {
  * to a callback whenever it arrives.
  */
 export async function requestPersistence({ force = false } = {}) {
-  const storage = globalThis.navigator?.storage;
-  current.supported = typeof storage?.persisted === 'function';
-  if (!current.supported) return (current.state = 'unknown');
+  // The API surface is read here rather than taken from the kit's answer: the
+  // kit reports null both for a browser that has no Storage API and for one
+  // that throws on the question (a private window does), and those two are a
+  // different thing to tell somebody — "we cannot know" against "it is not
+  // being kept".
+  const api = globalThis.navigator?.storage;
+  current.supported = typeof api?.persisted === 'function';
+  if (!current.supported) return settle('unknown', null);
 
-  try {
-    if (await storage.persisted()) return settle('persisted');
-    // Asking again after a refusal cannot help on its own — the answer is the
-    // browser's policy, not a dialog — so a refusal is remembered and the
-    // prompt is not put in front of the same person on every launch.
-    const asked = remembered();
-    current.asked = asked;
-    if (asked && !force) return settle('at-risk');
-    remember();
-    return settle(typeof storage.persist === 'function' && (await storage.persist()) ? 'persisted' : 'at-risk');
-  } catch {
-    // A browser that throws on the question (private windows do) is telling us
-    // the data is not being kept.
-    return settle('at-risk');
-  }
+  const before = await storageStatus();
+  if (!before) return settle('at-risk', null);
+  if (before.persisted) return settle('persisted', before);
+
+  // Asking again after a refusal cannot help on its own — the answer is the
+  // browser's policy, not a dialog — so a refusal is remembered and the prompt
+  // is not put in front of the same person on every launch.
+  const asked = remembered();
+  current.asked = asked;
+  if (asked && !force) return settle('at-risk', before);
+  remember();
+  const after = await requestPersistentStorage();
+  return settle(after.persisted ? 'persisted' : 'at-risk', after);
 }
 
 /**
@@ -79,8 +89,10 @@ export function initPersistence(onSettled = () => {}) {
   requestPersistence().then((state) => onSettled(state)).catch(() => {});
 }
 
-function settle(state) {
+function settle(state, status) {
   current.state = state;
+  current.usage = status?.usage ?? null;
+  current.quota = status?.quota ?? null;
   return state;
 }
 

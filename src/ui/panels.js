@@ -9,6 +9,9 @@ import {
 import { renameBox, labelArrow, setModelTitle } from '../model/edits.js';
 import { store, set, commit, currentDiagram, goToDiagram } from '../state/store.js';
 import { persistenceState, persistenceAdvice } from '../state/persistence.js';
+import { PORTAL_CREDENTIAL_LINE, syncNow, syncSnapshot, syncView, updateSyncSettings } from '../sync/index.js';
+import { syncSettings } from '../sync/settings.js';
+import { syncIssues } from '../sync/checks.js';
 import { renderCanvas } from './canvas.js';
 import { confirmDialog, promptNumber, promptText } from './dialog.js';
 import {
@@ -148,6 +151,9 @@ export function renderModelProps() {
 
     el('h3', { class: 'sect', text: 'This browser' }),
     ...storageRows(),
+
+    el('h3', { class: 'sect', text: 'Saving online' }),
+    ...syncRows(),
   );
 }
 
@@ -169,6 +175,60 @@ function storageRows() {
       el('span', { class: `badge ${badge}`.trim(), text: label })),
     ...(advice ? [el('div', { class: 'mnote', text: advice })] : []),
   ];
+}
+
+/**
+ * Where this browser saves online, and whether it managed to.
+ *
+ * Two shapes, one section. Under the Portal there is nothing to configure: the
+ * workspace comes from the toolkit and the credential is the session cookie, so
+ * the URL and token fields are replaced by the single line “Signed in via the
+ * toolkit”. Off the Portal the fields are there for somebody running a server
+ * of their own, and sync is off until they fill them in — nothing about the app
+ * changes for anyone who never does.
+ *
+ * `<sc-sync-status>` is the shared kit's readout, mounted beside the rest: it
+ * listens for the sync status event itself, shows “Synced · 4 min ago”, offers
+ * its own Sync now, and turns into a Sign in link when a session has run out.
+ */
+function syncRows() {
+  const view = syncView();
+  const rows = [
+    checkbox('Save this model to the workspace', view.enabled, (on) => { void updateSyncSettings({ enabled: on }); }),
+  ];
+
+  if (view.portal) {
+    rows.push(el('div', { class: 'kv' },
+      el('span', { text: 'Account' }),
+      el('span', { text: PORTAL_CREDENTIAL_LINE })));
+    if (view.workspace) {
+      rows.push(el('div', { class: 'kv' }, el('span', { text: 'Workspace' }), el('span', { class: 'mono', text: view.workspace })));
+    }
+  } else {
+    const settings = syncSettings();
+    rows.push(field('Server — the workspace URL', textInput(settings.url, (v) => {
+      const url = v.trim();
+      void updateSyncSettings({ url });
+      return url;
+    }, { placeholder: 'https://host/w/idef0' })));
+    rows.push(field('Token', textInput(settings.token, (v) => {
+      const token = v.trim();
+      void updateSyncSettings({ token });
+      return token;
+    }, { type: 'password', placeholder: 'Bearer token, if the server wants one' })));
+  }
+
+  const status = el('div', { class: 'syncline' });
+  const readout = document.createElement('sc-sync-status');
+  // The kit's element offers a Sync now of its own; this section already has
+  // one, and that one knows whether there is a server to sync with.
+  readout.setAttribute('no-button', '');
+  status.appendChild(readout);
+  rows.push(status);
+  rows.push(el('div', { class: 'row' },
+    el('button', { class: 'btn', text: 'Sync now', disabled: !view.configured, onclick: () => { void syncNow(); } })));
+  if (view.message) rows.push(el('div', { class: 'mnote', text: view.message }));
+  return rows;
 }
 
 const stat = (k, v) => el('div', { class: 'kv' }, el('span', { text: k }), el('span', { class: 'mono', text: String(v) }));
@@ -721,7 +781,11 @@ export function renderChecks() {
   const host = document.getElementById('checks');
   const badge = document.getElementById('checkcount');
   clear(host);
-  const issues = store.issues;
+  // The model's own rules, plus the two web-only checks about the copy in the
+  // workspace. They are merged here rather than added to src/model/validate.js
+  // because that file is mirrored byte for byte by the Swift port and pinned by
+  // goldens; see src/sync/checks.js for the whole argument.
+  const issues = [...store.issues, ...syncIssues(syncSnapshot())];
   const errors = issues.filter((i) => i.severity === 'error').length;
   const warnings = issues.length - errors;
 

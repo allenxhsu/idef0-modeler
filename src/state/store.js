@@ -8,11 +8,9 @@ import { deepClone } from '../util.js';
 import { createModel } from '../model/model.js';
 import { validate } from '../model/validate.js';
 import { bindAll, unboundCount } from '../model/concepts.js';
+import { localStore, AUTOSAVE_META, QUARANTINE_META } from './localStore.js';
 
 const MAX_HISTORY = 100;
-const AUTOSAVE_KEY = 'idef0-modeler:autosave';
-// An autosave the app could not read is moved here rather than deleted.
-const AUTOSAVE_QUARANTINE_KEY = 'idef0-modeler:autosave.corrupt';
 
 export const store = {
   model: createModel('Untitled Model'),
@@ -230,7 +228,30 @@ export function revalidate() {
 
 /* ------------------------------------------------------------- autosave  */
 
+// The recovery copy lives in the browser store's key/value space (see
+// state/localStore.js), which is asynchronous where localStorage was not.
+// Three things follow. Every access goes through `queue`, so the order the app
+// asked for — write, then the clear that a save issues a moment later — is the
+// order the store sees, whatever the disk does in between. Nothing is awaited
+// by the editor: a write that fails is exactly as best-effort as it was when a
+// private window refused localStorage. And `flushAutosave()` exists so a test,
+// or a caller that really must know, can wait for the queue to drain.
+
 let autosaveTimer = null;
+let queue = Promise.resolve();
+
+/** Runs store work in order, swallowing failures. Returns the queue's tail. */
+function enqueue(work) {
+  queue = queue.then(async () => {
+    const store_ = await localStore();
+    if (store_) await work(store_);
+  }).catch(() => { /* best effort: a store that will not keep it says so elsewhere */ });
+  return queue;
+}
+
+/** Resolves once every autosave write asked for so far has been attempted. */
+export function flushAutosave() { return queue; }
+
 function scheduleAutosave() {
   clearTimeout(autosaveTimer);
   // Only unsaved edits are worth recovering; a freshly opened file is not.
@@ -242,11 +263,10 @@ function scheduleAutosave() {
 }
 
 function writeAutosave() {
-  try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
-      at: Date.now(), fileName: store.ui.fileName, model: store.model,
-    }));
-  } catch { /* private mode or quota — autosave is best-effort */ }
+  // Serialized here rather than in the queue, so what is kept is the model as
+  // it was when the timer fired.
+  const text = JSON.stringify({ at: Date.now(), fileName: store.ui.fileName, model: store.model });
+  return enqueue((s) => s.setMeta(AUTOSAVE_META, text));
 }
 
 /**
@@ -274,27 +294,30 @@ export function markRecovered() {
   emit();
 }
 
-export function readAutosave() {
+/** The recovery copy, parsed, or null. Awaited once on launch. */
+export async function readAutosave() {
   try {
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    await flushAutosave();                // never read behind a write in flight
+    const s = await localStore();
+    const raw = s ? await s.meta(AUTOSAVE_META) : null;
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 
 export function clearAutosave() {
-  try { localStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignore */ }
+  return enqueue((s) => s.setMeta(AUTOSAVE_META, null));
 }
 
 /**
  * Keep a copy of an autosave the app could not read. Loading anything else
- * clears the live key, and a payload the deserializer rejects may still be
+ * clears the live copy, and a payload the deserializer rejects may still be
  * recoverable by hand.
  */
 export function quarantineAutosave() {
-  try {
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
-    if (raw != null) localStorage.setItem(AUTOSAVE_QUARANTINE_KEY, raw);
-  } catch { /* ignore */ }
+  return enqueue(async (s) => {
+    const raw = await s.meta(AUTOSAVE_META);
+    if (raw != null) await s.setMeta(QUARANTINE_META, raw);
+  });
 }
 
 revalidate();

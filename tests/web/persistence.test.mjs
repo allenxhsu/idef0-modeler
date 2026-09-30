@@ -1,5 +1,9 @@
 // Asking the browser to keep this app's data, and what the app says when it
 // will not. Nothing here may throw, and nothing may block.
+//
+// The asking is the sync kit's `requestPersistentStorage`/`storageStatus`, so
+// the fake `navigator.storage` below is what the kit reads: `persisted()`,
+// `persist()` and the `estimate()` the kit needs before it will answer at all.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,7 +13,7 @@ function defineNavigator(value) {
 }
 
 /** A fresh module per case: the answer is cached, which is the point of it. */
-async function load({ persisted, persist, userAgent = 'Chrome', store = new Map(), throws = false }) {
+async function load({ persisted, persist, userAgent = 'Chrome', store = new Map(), throws = false, usage = 4096, quota = 1048576 }) {
   const memory = store;
   globalThis.localStorage = {
     getItem: (k) => (memory.has(k) ? memory.get(k) : null),
@@ -23,6 +27,7 @@ async function load({ persisted, persist, userAgent = 'Chrome', store = new Map(
     maxTouchPoints: 0,
     storage: persisted === undefined ? undefined : {
       persisted: async () => { if (throws) throw new Error('private window'); return persisted; },
+      estimate: async () => ({ usage, quota }),
       ...(persist === undefined ? {} : { persist: async () => persist }),
     },
   });
@@ -36,6 +41,20 @@ test('a browser that already keeps the data is not asked again', async () => {
   assert.equal(mod.persistenceState().state, 'persisted');
   assert.equal(mod.persistenceAdvice('persisted'), null, 'nothing to advise');
   assert.equal(memory.size, 0, 'no need to remember having asked');
+});
+
+test('the bytes the browser reports come back with the answer', async () => {
+  const { mod } = await load({ persisted: true, usage: 8192, quota: 2097152 });
+  await mod.requestPersistence();
+  const state = mod.persistenceState();
+  assert.equal(state.usage, 8192, 'what the kit read from estimate()');
+  assert.equal(state.quota, 2097152);
+});
+
+test('a browser with no Storage API at all reports unknown, not at risk', async () => {
+  const { mod } = await load({ persisted: undefined });
+  assert.equal(await mod.requestPersistence(), 'unknown');
+  assert.equal(mod.persistenceState().usage, null);
 });
 
 test('a granted request reads as persisted', async () => {
