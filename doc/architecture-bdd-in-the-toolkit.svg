@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-26 -36 1132 692" width="1132" height="692"><style>
+text{font-family:Helvetica, Arial, sans-serif;font-size:12px;fill:#111418;dominant-baseline:auto}
+.d-mono{font-family:Menlo, Consolas, monospace;font-size:11px;fill:#2d343c}
+.d-name{font-family:Helvetica, Arial, sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.04em}
+.d-italic{font-style:italic}
+.d-comp{font-size:10.5px;font-style:italic;fill:#5b6470}
+.d-frame{fill:none;stroke:#111418;stroke-width:1}
+.d-frame-tab{fill:#ffffff;stroke:#111418;stroke-width:1}
+.d-sym .d-shape{fill:#f4f8fd;stroke:#111418}
+.d-sym .d-rule,.d-sym .d-stick{stroke:#111418}
+.d-sym.c-b .d-shape{fill:#fdf8ee;stroke:#111418}
+.d-sym.c-b .d-rule,.d-sym.c-b .d-stick{stroke:#111418}
+.d-sym.c-c .d-shape{fill:#fbf3f6;stroke:#111418}
+.d-sym.c-c .d-rule,.d-sym.c-c .d-stick{stroke:#111418}
+.d-sym.c-n .d-shape{fill:#fffbe6;stroke:#5b6470}
+.d-sym.c-n .d-rule,.d-sym.c-n .d-stick{stroke:#5b6470}
+.d-shape{stroke-width:1.2}
+.d-shape.dashed{stroke-dasharray:6 4}
+.d-rule{stroke-width:.8;opacity:.55;fill:none}
+.d-stick{fill:none;stroke-width:1.5}
+.d-port{fill:#ffffff;stroke:#111418;stroke-width:1.2}
+.d-port-dir{fill:#111418;stroke:none}
+.d-line{fill:none;stroke:#2d343c;stroke-width:1.2}
+.d-line.dashed{stroke-dasharray:6 4}
+.d-head{fill:none;stroke:#2d343c;stroke-width:1.2}
+.d-head.filled{fill:#2d343c}
+.d-head.hollow{fill:#ffffff}
+.d-hit{fill:none;stroke:transparent;stroke-width:12}
+.d-label-bg{fill:#ffffff;opacity:.85}
+</style><rect x="-26" y="-36" width="1132" height="692" fill="#fff"/><rect class="d-frame" x="-10" y="-20" width="1100" height="660"/><path class="d-frame-tab" d="M-10 -20h278.8v14l-10 10H-10z"/><text class="d-mono" x="0" y="-4">bdd [package] Toolkit [In the toolkit]</text><g class="d-symbols"><g class="d-sym " data-sym="sy_041" transform="translate(40 40)"><rect class="d-shape" width="220" height="50"/><text class="d-mono" x="110" y="19" text-anchor="middle">«block»</text><text class="d-name" x="110" y="36" text-anchor="middle">toolkit-portal</text></g><g class="d-sym " data-sym="sy_042" transform="translate(400 40)"><rect class="d-shape" width="260" height="50"/><text class="d-mono" x="130" y="19" text-anchor="middle">«block»</text><text class="d-name" x="130" y="36" text-anchor="middle">IDEF0 Modeler (web)</text></g><g class="d-sym " data-sym="sy_043" transform="translate(800 40)"><rect class="d-shape" width="240" height="50"/><text class="d-mono" x="120" y="19" text-anchor="middle">«block»</text><text class="d-name" x="120" y="36" text-anchor="middle">Ontology toolkit</text></g><g class="d-sym " data-sym="sy_044" transform="translate(220 300)"><rect class="d-shape" width="200" height="50"/><text class="d-mono" x="100" y="19" text-anchor="middle">«block»</text><text class="d-name" x="100" y="36" text-anchor="middle">ui-kit</text></g><g class="d-sym " data-sym="sy_045" transform="translate(580 300)"><rect class="d-shape" width="200" height="50"/><text class="d-mono" x="100" y="19" text-anchor="middle">«block»</text><text class="d-name" x="100" y="36" text-anchor="middle">sync-kit</text></g><g class="d-sym " data-sym="sy_046" transform="translate(220 540)"><rect class="d-shape" width="240" height="50"/><text class="d-mono" x="120" y="19" text-anchor="middle">«block»</text><text class="d-name" x="120" y="36" text-anchor="middle">IDEF0 Modeler.app</text></g><g class="d-sym " data-sym="sy_047" transform="translate(580 540)"><rect class="d-shape" width="240" height="50"/><text class="d-mono" x="120" y="19" text-anchor="middle">«block»</text><text class="d-name" x="120" y="36" text-anchor="middle">Sync server</text></g></g><g class="d-paths"><g class="d-path" data-path="pa_045"><path class="d-hit" d="M260 65L330 65L400 65"/><path class="d-line dashed" d="M260 65L330 65L400 65"/><path class="d-head" transform="translate(400 65) rotate(0)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="238.2" y="47" width="113.6" height="15"/><text class="d-mono" x="295" y="58" text-anchor="middle">toolkit-app.json</text></g><g class="d-path" data-path="pa_046"><path class="d-hit" d="M800 65L730 65L660 65"/><path class="d-line dashed" d="M800 65L730 65L660 65"/><path class="d-head" transform="translate(660 65) rotate(180)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="708.2" y="47" width="113.6" height="15"/><text class="d-mono" x="765" y="58" text-anchor="middle">concepts, --json</text></g><g class="d-path" data-path="pa_047"><path class="d-hit" d="M487 90L487 195L320 195L320 300"/><path class="d-line dashed" d="M487 90L487 195L320 195L320 300"/><path class="d-head" transform="translate(320 300) rotate(90)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="346.7" y="177" width="113.6" height="15"/><text class="d-mono" x="403.5" y="188" text-anchor="middle">vendored ui-kit/</text></g><g class="d-path" data-path="pa_048"><path class="d-hit" d="M573 90L573 195L680 195L680 300"/><path class="d-line dashed" d="M573 90L573 195L680 195L680 300"/><path class="d-head" transform="translate(680 300) rotate(90)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="563.1" y="177" width="126.8" height="15"/><text class="d-mono" x="626.5" y="188" text-anchor="middle">vendored sync-kit/</text></g><g class="d-path" data-path="pa_049"><path class="d-hit" d="M340 540L340 445L320 445L320 350"/><path class="d-line dashed" d="M340 540L340 445L320 445L320 350"/><path class="d-head" transform="translate(320 350) rotate(-90)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="346" y="485.5" width="93.8" height="15"/><text class="d-mono" x="392.9" y="496.5" text-anchor="middle">SCTheme.swift</text></g><g class="d-path" data-path="pa_050"><path class="d-hit" d="M680 350L680 445L700 445L700 540"/><path class="d-line dashed" d="M680 350L680 445L700 445L700 540"/><path class="d-head" transform="translate(700 540) rotate(90)" d="M-11 -5L0 0L-11 5"/><rect class="d-label-bg" x="686" y="390.5" width="93.8" height="15"/><text class="d-mono" x="732.9" y="401.5" text-anchor="middle">/w/idef0/sync</text></g></g><g class="d-ports"></g></svg>

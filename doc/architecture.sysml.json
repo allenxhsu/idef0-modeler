@@ -1,0 +1,2433 @@
+{
+  "format": "sysml-modeler",
+  "version": 1,
+  "name": "IDEF0 Modeler architecture",
+  "rootId": "pa_001",
+  "elements": {
+    "pa_001": {
+      "id": "pa_001",
+      "kind": "package",
+      "name": "IDEF0 Modeler architecture",
+      "ownerId": null,
+      "doc": ""
+    },
+    "pa_014": {
+      "id": "pa_014",
+      "kind": "package",
+      "name": "Web app",
+      "ownerId": "pa_001",
+      "doc": "index.html and src/ — plain ES modules and SVG; no build step, no package manager, no dependencies."
+    },
+    "pa_016": {
+      "id": "pa_016",
+      "kind": "package",
+      "name": "main",
+      "ownerId": "pa_014",
+      "doc": "src/main.js — wiring, keyboard shortcuts, file open, autosave recovery; src/portal.js mounts the Portal’s bar."
+    },
+    "pa_019": {
+      "id": "pa_019",
+      "kind": "package",
+      "name": "ui",
+      "ownerId": "pa_014",
+      "doc": "src/ui/ — render (shared by screen and export), canvas, panels, toolbar, dialog."
+    },
+    "pa_018": {
+      "id": "pa_018",
+      "kind": "package",
+      "name": "state",
+      "ownerId": "pa_014",
+      "doc": "src/state/ — store (snapshot undo/redo, autosave), persistence."
+    },
+    "pa_015": {
+      "id": "pa_015",
+      "kind": "package",
+      "name": "io",
+      "ownerId": "pa_014",
+      "doc": "src/io/ — json, idef0xml, exportImage, report."
+    },
+    "pa_017": {
+      "id": "pa_017",
+      "kind": "package",
+      "name": "model",
+      "ownerId": "pa_014",
+      "doc": "src/model/ — types, model, geometry, concepts, edits, validate, sample."
+    },
+    "pa_003": {
+      "id": "pa_003",
+      "kind": "package",
+      "name": "macos",
+      "ownerId": "pa_001",
+      "doc": "A Swift package: a byte-exact port of src/model and src/io, built into a SwiftUI app and a CLI."
+    },
+    "pa_005": {
+      "id": "pa_005",
+      "kind": "package",
+      "name": "IDEF0Core",
+      "ownerId": "pa_003",
+      "doc": "The model, geometry, concepts and rule checker, in Swift."
+    },
+    "pa_006": {
+      "id": "pa_006",
+      "kind": "package",
+      "name": "IDEF0Editing",
+      "ownerId": "pa_003",
+      "doc": "Naming edits as model operations."
+    },
+    "pa_008": {
+      "id": "pa_008",
+      "kind": "package",
+      "name": "IDEF0Render",
+      "ownerId": "pa_003",
+      "doc": "Draws the sheet."
+    },
+    "pa_007": {
+      "id": "pa_007",
+      "kind": "package",
+      "name": "IDEF0Modeler",
+      "ownerId": "pa_003",
+      "doc": "The SwiftUI DocumentGroup app, macOS 14+."
+    },
+    "pa_004": {
+      "id": "pa_004",
+      "kind": "package",
+      "name": "idef0",
+      "ownerId": "pa_003",
+      "doc": "The command-line tool: validate, convert, report, render. --json is a documented, stable contract."
+    },
+    "pa_010": {
+      "id": "pa_010",
+      "kind": "package",
+      "name": "tests",
+      "ownerId": "pa_001",
+      "doc": "tests/web — fast, Swift-free tests against the web modules, including goldens-staleness; macos/Tests — swift test."
+    },
+    "pa_013": {
+      "id": "pa_013",
+      "kind": "package",
+      "name": "vendored kits",
+      "ownerId": "pa_001",
+      "doc": "ui-kit/ and sync-kit/ — refreshed by scripts/vendor-kits.sh, which --check runs from build-app.sh and serve.sh."
+    },
+    "pa_011": {
+      "id": "pa_011",
+      "kind": "package",
+      "name": "Toolkit",
+      "ownerId": "pa_001",
+      "doc": ""
+    },
+    "pa_012": {
+      "id": "pa_012",
+      "kind": "package",
+      "name": "Use cases",
+      "ownerId": "pa_001",
+      "doc": ""
+    },
+    "pa_009": {
+      "id": "pa_009",
+      "kind": "package",
+      "name": "Rules",
+      "ownerId": "pa_001",
+      "doc": "What the model enforces and promises. The full rule table, 30-odd codes, is in the README."
+    },
+    "pa_002": {
+      "id": "pa_002",
+      "kind": "package",
+      "name": "IDEF0 model",
+      "ownerId": "pa_001",
+      "doc": "What a *.idef0.json holds."
+    },
+    "bl_007": {
+      "id": "bl_007",
+      "kind": "block",
+      "name": "Model",
+      "ownerId": "pa_002",
+      "doc": "Title, purpose, viewpoint; diagrams; the concept registry.",
+      "isAbstract": false
+    },
+    "bl_006": {
+      "id": "bl_006",
+      "kind": "block",
+      "name": "Diagram",
+      "ownerId": "pa_002",
+      "doc": "A-0 context, or a decomposition of a box: one landscape sheet, a node number.",
+      "isAbstract": false
+    },
+    "bl_003": {
+      "id": "bl_003",
+      "kind": "block",
+      "name": "Box",
+      "ownerId": "pa_002",
+      "doc": "An activity: a verb phrase, a box number 0–6, bound to a concept. May be decomposed into a child diagram, or call another.",
+      "isAbstract": false
+    },
+    "bl_001": {
+      "id": "bl_001",
+      "kind": "block",
+      "name": "Arrow",
+      "ownerId": "pa_002",
+      "doc": "Input, control, output or mechanism (ICOM); a noun-phrase label bound to a concept; forks, joins, tunnels.",
+      "isAbstract": false
+    },
+    "bl_005": {
+      "id": "bl_005",
+      "kind": "block",
+      "name": "Concept",
+      "ownerId": "pa_002",
+      "doc": "The identity behind every name and label. Renaming carries every occurrence; renaming onto an existing term merges.",
+      "isAbstract": false
+    },
+    "bl_004": {
+      "id": "bl_004",
+      "kind": "block",
+      "name": "Bundle",
+      "ownerId": "pa_002",
+      "doc": "A concept that combines others, in order. Un-combining is lossless.",
+      "isAbstract": false
+    },
+    "bl_002": {
+      "id": "bl_002",
+      "kind": "block",
+      "name": "Boundary port",
+      "ownerId": "pa_002",
+      "doc": "I1, C1, O1, M1… — a child’s inherited boundary arrow keeps its parent’s conceptId.",
+      "isAbstract": false
+    },
+    "va_001": {
+      "id": "va_001",
+      "kind": "valueType",
+      "name": "Instant",
+      "ownerId": "pa_002",
+      "doc": "",
+      "unit": "ISO-8601 with an explicit zone"
+    },
+    "pr_016": {
+      "id": "pr_016",
+      "kind": "property",
+      "name": "diagrams",
+      "ownerId": "bl_007",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_006",
+      "typeText": "",
+      "multiplicity": "1..*",
+      "defaultValue": ""
+    },
+    "pr_017": {
+      "id": "pr_017",
+      "kind": "property",
+      "name": "glossary",
+      "ownerId": "bl_007",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_005",
+      "typeText": "",
+      "multiplicity": "0..*",
+      "defaultValue": ""
+    },
+    "pr_013": {
+      "id": "pr_013",
+      "kind": "property",
+      "name": "boxes",
+      "ownerId": "bl_006",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_003",
+      "typeText": "",
+      "multiplicity": "1..6",
+      "defaultValue": ""
+    },
+    "pr_011": {
+      "id": "pr_011",
+      "kind": "property",
+      "name": "arrows",
+      "ownerId": "bl_006",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_001",
+      "typeText": "",
+      "multiplicity": "0..*",
+      "defaultValue": ""
+    },
+    "pr_012": {
+      "id": "pr_012",
+      "kind": "property",
+      "name": "boundary",
+      "ownerId": "bl_006",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_002",
+      "typeText": "",
+      "multiplicity": "0..*",
+      "defaultValue": ""
+    },
+    "pr_005": {
+      "id": "pr_005",
+      "kind": "property",
+      "name": "concept",
+      "ownerId": "bl_003",
+      "doc": "",
+      "propKind": "reference",
+      "typeId": "bl_005",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_001": {
+      "id": "pr_001",
+      "kind": "property",
+      "name": "concept",
+      "ownerId": "bl_001",
+      "doc": "",
+      "propKind": "reference",
+      "typeId": "bl_005",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_004": {
+      "id": "pr_004",
+      "kind": "property",
+      "name": "child",
+      "ownerId": "bl_003",
+      "doc": "",
+      "propKind": "reference",
+      "typeId": "bl_006",
+      "typeText": "",
+      "multiplicity": "0..1",
+      "defaultValue": ""
+    },
+    "pr_008": {
+      "id": "pr_008",
+      "kind": "property",
+      "name": "members",
+      "ownerId": "bl_004",
+      "doc": "",
+      "propKind": "reference",
+      "typeId": "bl_005",
+      "typeText": "",
+      "multiplicity": "2..*",
+      "defaultValue": ""
+    },
+    "pr_007": {
+      "id": "pr_007",
+      "kind": "property",
+      "name": "updatedAt",
+      "ownerId": "bl_003",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_006": {
+      "id": "pr_006",
+      "kind": "property",
+      "name": "deletedAt",
+      "ownerId": "bl_003",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": "a tombstone"
+    },
+    "pr_003": {
+      "id": "pr_003",
+      "kind": "property",
+      "name": "updatedAt",
+      "ownerId": "bl_001",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_002": {
+      "id": "pr_002",
+      "kind": "property",
+      "name": "deletedAt",
+      "ownerId": "bl_001",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": "a tombstone"
+    },
+    "pr_015": {
+      "id": "pr_015",
+      "kind": "property",
+      "name": "updatedAt",
+      "ownerId": "bl_006",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_014": {
+      "id": "pr_014",
+      "kind": "property",
+      "name": "deletedAt",
+      "ownerId": "bl_006",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": "a tombstone"
+    },
+    "pr_010": {
+      "id": "pr_010",
+      "kind": "property",
+      "name": "updatedAt",
+      "ownerId": "bl_005",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_009": {
+      "id": "pr_009",
+      "kind": "property",
+      "name": "deletedAt",
+      "ownerId": "bl_005",
+      "doc": "",
+      "propKind": "value",
+      "typeId": "va_001",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": "a tombstone"
+    },
+    "bl_018": {
+      "id": "bl_018",
+      "kind": "block",
+      "name": "IDEF0 Modeler (web)",
+      "ownerId": "pa_014",
+      "doc": "Served by ./serve.sh at :8123, or by the Portal at /idef0/.",
+      "isAbstract": false
+    },
+    "bl_029": {
+      "id": "bl_029",
+      "kind": "block",
+      "name": "Store",
+      "ownerId": "pa_018",
+      "doc": "State, snapshot undo/redo, autosave.",
+      "isAbstract": false
+    },
+    "bl_028": {
+      "id": "bl_028",
+      "kind": "block",
+      "name": "Persistence",
+      "ownerId": "pa_018",
+      "doc": "Asks the browser to keep this app’s data, and reports whether it agreed.",
+      "isAbstract": false
+    },
+    "bl_025": {
+      "id": "bl_025",
+      "kind": "block",
+      "name": "Model operations",
+      "ownerId": "pa_017",
+      "doc": "model.js — structure, decomposition, staircase layout, node numbering, ICOM codes, ports, bundles.",
+      "isAbstract": false
+    },
+    "bl_024": {
+      "id": "bl_024",
+      "kind": "block",
+      "name": "Geometry",
+      "ownerId": "pa_017",
+      "doc": "Anchor resolution, rectilinear routing, port shapes.",
+      "isAbstract": false
+    },
+    "bl_023": {
+      "id": "bl_023",
+      "kind": "block",
+      "name": "Concept registry",
+      "ownerId": "pa_017",
+      "doc": "concepts.js — combining and un-combining.",
+      "isAbstract": false
+    },
+    "bl_026": {
+      "id": "bl_026",
+      "kind": "block",
+      "name": "Naming edits",
+      "ownerId": "pa_017",
+      "doc": "edits.js — rename a box, label an arrow, as model operations.",
+      "isAbstract": false
+    },
+    "bl_027": {
+      "id": "bl_027",
+      "kind": "block",
+      "name": "Rule checker",
+      "ownerId": "pa_017",
+      "doc": "validate.js — every code a stable identifier shared by the web panel, the Mac panel and idef0 validate --json.",
+      "isAbstract": false
+    },
+    "bl_032": {
+      "id": "bl_032",
+      "kind": "block",
+      "name": "Renderer",
+      "ownerId": "pa_019",
+      "doc": "render.js — used unchanged by the exporters: what you see is what lands in the SVG, PNG and PDF.",
+      "isAbstract": false
+    },
+    "bl_030": {
+      "id": "bl_030",
+      "kind": "block",
+      "name": "Canvas",
+      "ownerId": "pa_019",
+      "doc": "Hit testing, arrow and port drags, drawing, pan and zoom.",
+      "isAbstract": false
+    },
+    "bl_031": {
+      "id": "bl_031",
+      "kind": "block",
+      "name": "Panels",
+      "ownerId": "pa_019",
+      "doc": "Node tree, model properties, glossary, inspector, checks.",
+      "isAbstract": false
+    },
+    "bl_020": {
+      "id": "bl_020",
+      "kind": "block",
+      "name": "Native format",
+      "ownerId": "pa_015",
+      "doc": "*.idef0.json — canonical, plain, diff-friendly.",
+      "isAbstract": false
+    },
+    "bl_022": {
+      "id": "bl_022",
+      "kind": "block",
+      "name": "XML interchange",
+      "ownerId": "pa_015",
+      "doc": "*.idef0.xml — a current-version file round-trips exactly (doc/idef0-xml.md).",
+      "isAbstract": false
+    },
+    "bl_021": {
+      "id": "bl_021",
+      "kind": "block",
+      "name": "Report",
+      "ownerId": "pa_015",
+      "doc": "Node index, activity and arrow tables, glossary, rule-check results; IDL listing.",
+      "isAbstract": false
+    },
+    "bl_019": {
+      "id": "bl_019",
+      "kind": "block",
+      "name": "Image export",
+      "ownerId": "pa_015",
+      "doc": "SVG, PNG, PDF (the diagram or the whole kit).",
+      "isAbstract": false
+    },
+    "pr_032": {
+      "id": "pr_032",
+      "kind": "property",
+      "name": "store",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_029",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_029": {
+      "id": "pr_029",
+      "kind": "property",
+      "name": "persistence",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_028",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_027": {
+      "id": "pr_027",
+      "kind": "property",
+      "name": "model",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_025",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_024": {
+      "id": "pr_024",
+      "kind": "property",
+      "name": "geometry",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_024",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_022": {
+      "id": "pr_022",
+      "kind": "property",
+      "name": "concepts",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_023",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_023": {
+      "id": "pr_023",
+      "kind": "property",
+      "name": "edits",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_026",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_021": {
+      "id": "pr_021",
+      "kind": "property",
+      "name": "checks",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_027",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_030": {
+      "id": "pr_030",
+      "kind": "property",
+      "name": "renderer",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_032",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_020": {
+      "id": "pr_020",
+      "kind": "property",
+      "name": "canvas",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_030",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_028": {
+      "id": "pr_028",
+      "kind": "property",
+      "name": "panels",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_031",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_026": {
+      "id": "pr_026",
+      "kind": "property",
+      "name": "json",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_020",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_033": {
+      "id": "pr_033",
+      "kind": "property",
+      "name": "xml",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_022",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_031": {
+      "id": "pr_031",
+      "kind": "property",
+      "name": "report",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_021",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_025": {
+      "id": "pr_025",
+      "kind": "property",
+      "name": "images",
+      "ownerId": "bl_018",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_019",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "bl_010": {
+      "id": "bl_010",
+      "kind": "block",
+      "name": "IDEF0 Modeler.app",
+      "ownerId": "pa_007",
+      "doc": "SwiftUI DocumentGroup: must run as a real .app bundle, which reads its document types from Info.plist.",
+      "isAbstract": false
+    },
+    "bl_008": {
+      "id": "bl_008",
+      "kind": "block",
+      "name": "idef0 CLI",
+      "ownerId": "pa_004",
+      "doc": "Checks, converts, reports on and renders a model without opening either app.",
+      "isAbstract": false
+    },
+    "bl_009": {
+      "id": "bl_009",
+      "kind": "block",
+      "name": "Swift core",
+      "ownerId": "pa_005",
+      "doc": "Same .idef0.json, same XML, same rule checker, the same message text.",
+      "isAbstract": false
+    },
+    "bl_011": {
+      "id": "bl_011",
+      "kind": "block",
+      "name": "Golden fixtures",
+      "ownerId": "pa_010",
+      "doc": "Captured headlessly from the web modules (golden-harness.js); the Swift tests compare against them, and goldens-staleness fails when they lag the web code.",
+      "isAbstract": false
+    },
+    "pr_019": {
+      "id": "pr_019",
+      "kind": "property",
+      "name": "core",
+      "ownerId": "bl_010",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_009",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "pr_018": {
+      "id": "pr_018",
+      "kind": "property",
+      "name": "core",
+      "ownerId": "bl_008",
+      "doc": "",
+      "propKind": "part",
+      "typeId": "bl_009",
+      "typeText": "",
+      "multiplicity": "1",
+      "defaultValue": ""
+    },
+    "bl_016": {
+      "id": "bl_016",
+      "kind": "block",
+      "name": "ui-kit",
+      "ownerId": "pa_011",
+      "doc": "The shared HUD: tokens, CSS, theme runtime, web components.",
+      "isAbstract": false
+    },
+    "bl_014": {
+      "id": "bl_014",
+      "kind": "block",
+      "name": "sync-kit",
+      "ownerId": "pa_011",
+      "doc": "The record-sync client: SyncEngine, a store, HttpTransport.",
+      "isAbstract": false
+    },
+    "bl_013": {
+      "id": "bl_013",
+      "kind": "block",
+      "name": "Sync server",
+      "ownerId": "pa_011",
+      "doc": "sync-kit/server — this app’s records live in workspace “idef0”.",
+      "isAbstract": false
+    },
+    "bl_015": {
+      "id": "bl_015",
+      "kind": "block",
+      "name": "toolkit-portal",
+      "ownerId": "pa_011",
+      "doc": "Collects the app from toolkit-app.json and serves it at /idef0/ on one origin.",
+      "isAbstract": false
+    },
+    "bl_012": {
+      "id": "bl_012",
+      "kind": "block",
+      "name": "Ontology toolkit",
+      "ownerId": "pa_011",
+      "doc": "Downstream tools that read the model: the concept registry and idef0 --json.",
+      "isAbstract": false
+    },
+    "ac_001": {
+      "id": "ac_001",
+      "kind": "actor",
+      "name": "Analyst",
+      "ownerId": "pa_012",
+      "doc": ""
+    },
+    "ac_002": {
+      "id": "ac_002",
+      "kind": "actor",
+      "name": "Downstream tool",
+      "ownerId": "pa_012",
+      "doc": "Reads concepts and idef0 --json."
+    },
+    "us_004": {
+      "id": "us_004",
+      "kind": "useCase",
+      "name": "Draw the context diagram",
+      "ownerId": "pa_012",
+      "doc": "A-0: exactly one box."
+    },
+    "us_003": {
+      "id": "us_003",
+      "kind": "useCase",
+      "name": "Decompose an activity",
+      "ownerId": "pa_012",
+      "doc": "3–6 boxes; boundary arrows inherited with their concepts."
+    },
+    "us_001": {
+      "id": "us_001",
+      "kind": "useCase",
+      "name": "Connect ICOM arrows",
+      "ownerId": "pa_012",
+      "doc": "Forks, joins, tunnels; rectilinear routing."
+    },
+    "us_002": {
+      "id": "us_002",
+      "kind": "useCase",
+      "name": "Curate the glossary",
+      "ownerId": "pa_012",
+      "doc": "Rename, merge, bundle and un-bundle concepts."
+    },
+    "us_005": {
+      "id": "us_005",
+      "kind": "useCase",
+      "name": "Fix what the rules find",
+      "ownerId": "pa_012",
+      "doc": ""
+    },
+    "us_006": {
+      "id": "us_006",
+      "kind": "useCase",
+      "name": "Publish the kit",
+      "ownerId": "pa_012",
+      "doc": "SVG, PNG, PDF, report, IDL, XML."
+    },
+    "us_007": {
+      "id": "us_007",
+      "kind": "useCase",
+      "name": "Validate in CI",
+      "ownerId": "pa_012",
+      "doc": "idef0 validate --json."
+    },
+    "re_002": {
+      "id": "re_002",
+      "kind": "requirement",
+      "name": "FIPS 183 syntax",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID1",
+      "text": "A-0 shall hold exactly one box; a decomposition 3–6; every box a control and an output; every arrow a label."
+    },
+    "re_001": {
+      "id": "re_001",
+      "kind": "requirement",
+      "name": "Every name is a concept",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID2",
+      "text": "Every named box and labelled arrow shall be bound to a glossary concept."
+    },
+    "re_004": {
+      "id": "re_004",
+      "kind": "requirement",
+      "name": "Stable rule codes",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID3",
+      "text": "Every finding shall carry a code shared by the web panel, the Mac panel and idef0 validate --json."
+    },
+    "re_006": {
+      "id": "re_006",
+      "kind": "requirement",
+      "name": "Web and Swift agree",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID4",
+      "text": "The Swift port shall read, write and check a model byte for byte as the web modules do."
+    },
+    "re_005": {
+      "id": "re_005",
+      "kind": "requirement",
+      "name": "Times are never invented",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID5",
+      "text": "An element with no updatedAt or deletedAt shall be written back with none, so an older file saves byte for byte."
+    },
+    "re_003": {
+      "id": "re_003",
+      "kind": "requirement",
+      "name": "Screen equals export",
+      "ownerId": "pa_009",
+      "doc": "",
+      "reqId": "ID6",
+      "text": "What is drawn on screen shall be exactly what lands in the SVG, PNG and PDF."
+    },
+    "te_004": {
+      "id": "te_004",
+      "kind": "testCase",
+      "name": "goldens-staleness.test.mjs",
+      "ownerId": "pa_010",
+      "doc": "The goldens the Swift tests compare against are current."
+    },
+    "te_006": {
+      "id": "te_006",
+      "kind": "testCase",
+      "name": "swift test",
+      "ownerId": "pa_010",
+      "doc": "IDEF0CoreTests, IDEF0EditingTests, IDEF0RenderTests, IDEF0ModelerTests, idef0CLITests."
+    },
+    "te_003": {
+      "id": "te_003",
+      "kind": "testCase",
+      "name": "edits.test.mjs",
+      "ownerId": "pa_010",
+      "doc": ""
+    },
+    "te_002": {
+      "id": "te_002",
+      "kind": "testCase",
+      "name": "clocks.test.mjs",
+      "ownerId": "pa_010",
+      "doc": ""
+    },
+    "te_001": {
+      "id": "te_001",
+      "kind": "testCase",
+      "name": "bundles.test.mjs",
+      "ownerId": "pa_010",
+      "doc": ""
+    },
+    "te_005": {
+      "id": "te_005",
+      "kind": "testCase",
+      "name": "render-forks / render-bundles",
+      "ownerId": "pa_010",
+      "doc": ""
+    },
+    "bl_017": {
+      "id": "bl_017",
+      "kind": "block",
+      "name": "IDEF0 Modeler",
+      "ownerId": "pa_012",
+      "doc": "",
+      "isAbstract": false
+    }
+  },
+  "relationships": {
+    "rl_001": {
+      "id": "rl_001",
+      "kind": "dependency",
+      "sourceId": "pa_016",
+      "targetId": "pa_019",
+      "name": ""
+    },
+    "rl_002": {
+      "id": "rl_002",
+      "kind": "dependency",
+      "sourceId": "pa_016",
+      "targetId": "pa_018",
+      "name": ""
+    },
+    "rl_003": {
+      "id": "rl_003",
+      "kind": "dependency",
+      "sourceId": "pa_019",
+      "targetId": "pa_018",
+      "name": ""
+    },
+    "rl_004": {
+      "id": "rl_004",
+      "kind": "dependency",
+      "sourceId": "pa_019",
+      "targetId": "pa_017",
+      "name": ""
+    },
+    "rl_005": {
+      "id": "rl_005",
+      "kind": "dependency",
+      "sourceId": "pa_019",
+      "targetId": "pa_015",
+      "name": ""
+    },
+    "rl_006": {
+      "id": "rl_006",
+      "kind": "dependency",
+      "sourceId": "pa_018",
+      "targetId": "pa_017",
+      "name": ""
+    },
+    "rl_007": {
+      "id": "rl_007",
+      "kind": "dependency",
+      "sourceId": "pa_015",
+      "targetId": "pa_017",
+      "name": ""
+    },
+    "rl_008": {
+      "id": "rl_008",
+      "kind": "dependency",
+      "sourceId": "pa_018",
+      "targetId": "pa_013",
+      "name": ""
+    },
+    "rl_009": {
+      "id": "rl_009",
+      "kind": "dependency",
+      "sourceId": "pa_019",
+      "targetId": "pa_013",
+      "name": ""
+    },
+    "rl_010": {
+      "id": "rl_010",
+      "kind": "dependency",
+      "sourceId": "pa_007",
+      "targetId": "pa_006",
+      "name": ""
+    },
+    "rl_011": {
+      "id": "rl_011",
+      "kind": "dependency",
+      "sourceId": "pa_007",
+      "targetId": "pa_008",
+      "name": ""
+    },
+    "rl_012": {
+      "id": "rl_012",
+      "kind": "dependency",
+      "sourceId": "pa_004",
+      "targetId": "pa_005",
+      "name": ""
+    },
+    "rl_013": {
+      "id": "rl_013",
+      "kind": "dependency",
+      "sourceId": "pa_004",
+      "targetId": "pa_008",
+      "name": ""
+    },
+    "rl_014": {
+      "id": "rl_014",
+      "kind": "dependency",
+      "sourceId": "pa_006",
+      "targetId": "pa_005",
+      "name": ""
+    },
+    "rl_015": {
+      "id": "rl_015",
+      "kind": "dependency",
+      "sourceId": "pa_008",
+      "targetId": "pa_005",
+      "name": ""
+    },
+    "rl_016": {
+      "id": "rl_016",
+      "kind": "dependency",
+      "sourceId": "pa_010",
+      "targetId": "pa_017",
+      "name": ""
+    },
+    "rl_017": {
+      "id": "rl_017",
+      "kind": "dependency",
+      "sourceId": "pa_010",
+      "targetId": "pa_015",
+      "name": ""
+    },
+    "rl_018": {
+      "id": "rl_018",
+      "kind": "trace",
+      "sourceId": "pa_005",
+      "targetId": "pa_017",
+      "name": "byte-exact port"
+    },
+    "rl_019": {
+      "id": "rl_019",
+      "kind": "trace",
+      "sourceId": "pa_008",
+      "targetId": "pa_019",
+      "name": "port of render.js"
+    },
+    "rl_020": {
+      "id": "rl_020",
+      "kind": "generalization",
+      "sourceId": "bl_004",
+      "targetId": "bl_005",
+      "name": ""
+    },
+    "rl_021": {
+      "id": "rl_021",
+      "kind": "dependency",
+      "sourceId": "bl_009",
+      "targetId": "bl_025",
+      "name": "byte-exact port of"
+    },
+    "rl_022": {
+      "id": "rl_022",
+      "kind": "dependency",
+      "sourceId": "bl_009",
+      "targetId": "bl_027",
+      "name": "byte-exact port of"
+    },
+    "rl_023": {
+      "id": "rl_023",
+      "kind": "dependency",
+      "sourceId": "bl_011",
+      "targetId": "bl_027",
+      "name": "captured from"
+    },
+    "rl_024": {
+      "id": "rl_024",
+      "kind": "dependency",
+      "sourceId": "bl_009",
+      "targetId": "bl_011",
+      "name": "checked against"
+    },
+    "rl_025": {
+      "id": "rl_025",
+      "kind": "dependency",
+      "sourceId": "bl_018",
+      "targetId": "bl_016",
+      "name": "vendored ui-kit/"
+    },
+    "rl_026": {
+      "id": "rl_026",
+      "kind": "dependency",
+      "sourceId": "bl_018",
+      "targetId": "bl_014",
+      "name": "vendored sync-kit/"
+    },
+    "rl_027": {
+      "id": "rl_027",
+      "kind": "dependency",
+      "sourceId": "bl_014",
+      "targetId": "bl_013",
+      "name": "/w/idef0/sync"
+    },
+    "rl_028": {
+      "id": "rl_028",
+      "kind": "dependency",
+      "sourceId": "bl_015",
+      "targetId": "bl_018",
+      "name": "toolkit-app.json"
+    },
+    "rl_029": {
+      "id": "rl_029",
+      "kind": "dependency",
+      "sourceId": "bl_012",
+      "targetId": "bl_018",
+      "name": "concepts, --json"
+    },
+    "rl_030": {
+      "id": "rl_030",
+      "kind": "dependency",
+      "sourceId": "bl_010",
+      "targetId": "bl_016",
+      "name": "SCTheme.swift"
+    },
+    "rl_031": {
+      "id": "rl_031",
+      "kind": "association",
+      "sourceId": "ac_001",
+      "targetId": "us_004",
+      "name": ""
+    },
+    "rl_032": {
+      "id": "rl_032",
+      "kind": "association",
+      "sourceId": "ac_001",
+      "targetId": "us_003",
+      "name": ""
+    },
+    "rl_033": {
+      "id": "rl_033",
+      "kind": "association",
+      "sourceId": "ac_001",
+      "targetId": "us_002",
+      "name": ""
+    },
+    "rl_034": {
+      "id": "rl_034",
+      "kind": "association",
+      "sourceId": "ac_001",
+      "targetId": "us_005",
+      "name": ""
+    },
+    "rl_035": {
+      "id": "rl_035",
+      "kind": "association",
+      "sourceId": "ac_001",
+      "targetId": "us_006",
+      "name": ""
+    },
+    "rl_036": {
+      "id": "rl_036",
+      "kind": "association",
+      "sourceId": "ac_002",
+      "targetId": "us_007",
+      "name": ""
+    },
+    "rl_037": {
+      "id": "rl_037",
+      "kind": "include",
+      "sourceId": "us_003",
+      "targetId": "us_001",
+      "name": ""
+    },
+    "rl_038": {
+      "id": "rl_038",
+      "kind": "satisfy",
+      "sourceId": "bl_027",
+      "targetId": "re_002",
+      "name": ""
+    },
+    "rl_039": {
+      "id": "rl_039",
+      "kind": "satisfy",
+      "sourceId": "bl_023",
+      "targetId": "re_001",
+      "name": ""
+    },
+    "rl_040": {
+      "id": "rl_040",
+      "kind": "satisfy",
+      "sourceId": "bl_027",
+      "targetId": "re_004",
+      "name": ""
+    },
+    "rl_041": {
+      "id": "rl_041",
+      "kind": "satisfy",
+      "sourceId": "bl_009",
+      "targetId": "re_006",
+      "name": ""
+    },
+    "rl_042": {
+      "id": "rl_042",
+      "kind": "satisfy",
+      "sourceId": "bl_020",
+      "targetId": "re_005",
+      "name": ""
+    },
+    "rl_043": {
+      "id": "rl_043",
+      "kind": "satisfy",
+      "sourceId": "bl_032",
+      "targetId": "re_003",
+      "name": ""
+    },
+    "rl_044": {
+      "id": "rl_044",
+      "kind": "verify",
+      "sourceId": "te_006",
+      "targetId": "re_002",
+      "name": ""
+    },
+    "rl_045": {
+      "id": "rl_045",
+      "kind": "verify",
+      "sourceId": "te_001",
+      "targetId": "re_001",
+      "name": ""
+    },
+    "rl_046": {
+      "id": "rl_046",
+      "kind": "verify",
+      "sourceId": "te_003",
+      "targetId": "re_001",
+      "name": ""
+    },
+    "rl_047": {
+      "id": "rl_047",
+      "kind": "verify",
+      "sourceId": "te_006",
+      "targetId": "re_004",
+      "name": ""
+    },
+    "rl_048": {
+      "id": "rl_048",
+      "kind": "verify",
+      "sourceId": "te_004",
+      "targetId": "re_006",
+      "name": ""
+    },
+    "rl_049": {
+      "id": "rl_049",
+      "kind": "verify",
+      "sourceId": "te_006",
+      "targetId": "re_006",
+      "name": ""
+    },
+    "rl_050": {
+      "id": "rl_050",
+      "kind": "verify",
+      "sourceId": "te_002",
+      "targetId": "re_005",
+      "name": ""
+    },
+    "rl_051": {
+      "id": "rl_051",
+      "kind": "verify",
+      "sourceId": "te_005",
+      "targetId": "re_003",
+      "name": ""
+    }
+  },
+  "diagrams": {
+    "dg_001": {
+      "id": "dg_001",
+      "kind": "pkg",
+      "name": "Web and Swift",
+      "ownerId": "pa_001",
+      "symbols": [
+        {
+          "id": "sy_001",
+          "elementId": "pa_016",
+          "x": 300,
+          "y": 40,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_002",
+          "elementId": "pa_004",
+          "x": 900,
+          "y": 40,
+          "w": 160,
+          "h": 80
+        },
+        {
+          "id": "sy_003",
+          "elementId": "pa_007",
+          "x": 1300,
+          "y": 40,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_004",
+          "elementId": "pa_019",
+          "x": 300,
+          "y": 230,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_005",
+          "elementId": "pa_018",
+          "x": 560,
+          "y": 230,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_006",
+          "elementId": "pa_008",
+          "x": 1100,
+          "y": 230,
+          "w": 160,
+          "h": 80
+        },
+        {
+          "id": "sy_007",
+          "elementId": "pa_006",
+          "x": 1300,
+          "y": 230,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_008",
+          "elementId": "pa_015",
+          "x": 40,
+          "y": 420,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_009",
+          "elementId": "pa_017",
+          "x": 300,
+          "y": 420,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_010",
+          "elementId": "pa_013",
+          "x": 560,
+          "y": 420,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_011",
+          "elementId": "pa_005",
+          "x": 1200,
+          "y": 440,
+          "w": 180,
+          "h": 80
+        },
+        {
+          "id": "sy_012",
+          "elementId": "pa_010",
+          "x": 170,
+          "y": 610,
+          "w": 180,
+          "h": 80
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_001",
+          "refId": "rl_001"
+        },
+        {
+          "id": "pa_002",
+          "refId": "rl_002"
+        },
+        {
+          "id": "pa_003",
+          "refId": "rl_003"
+        },
+        {
+          "id": "pa_004",
+          "refId": "rl_011"
+        },
+        {
+          "id": "pa_005",
+          "refId": "rl_013"
+        },
+        {
+          "id": "pa_006",
+          "refId": "rl_010"
+        },
+        {
+          "id": "pa_007",
+          "refId": "rl_005"
+        },
+        {
+          "id": "pa_008",
+          "refId": "rl_004"
+        },
+        {
+          "id": "pa_009",
+          "refId": "rl_006"
+        },
+        {
+          "id": "pa_010",
+          "refId": "rl_007"
+        },
+        {
+          "id": "pa_011",
+          "refId": "rl_008"
+        },
+        {
+          "id": "pa_012",
+          "refId": "rl_009"
+        },
+        {
+          "id": "pa_013",
+          "refId": "rl_014"
+        },
+        {
+          "id": "pa_014",
+          "refId": "rl_015"
+        },
+        {
+          "id": "pa_015",
+          "refId": "rl_016"
+        },
+        {
+          "id": "pa_016",
+          "refId": "rl_017"
+        }
+      ]
+    },
+    "dg_002": {
+      "id": "dg_002",
+      "kind": "bdd",
+      "name": "The web app",
+      "ownerId": "pa_014",
+      "symbols": [
+        {
+          "id": "sy_013",
+          "elementId": "bl_018",
+          "x": 520,
+          "y": 300,
+          "w": 280,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_014",
+          "elementId": "bl_030",
+          "x": 40,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_015",
+          "elementId": "bl_031",
+          "x": 216,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_016",
+          "elementId": "bl_032",
+          "x": 392,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_017",
+          "elementId": "bl_029",
+          "x": 568,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_018",
+          "elementId": "bl_028",
+          "x": 744,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_019",
+          "elementId": "bl_020",
+          "x": 920,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_020",
+          "elementId": "bl_022",
+          "x": 1096,
+          "y": 40,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_021",
+          "elementId": "bl_025",
+          "x": 40,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_022",
+          "elementId": "bl_024",
+          "x": 216,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_023",
+          "elementId": "bl_023",
+          "x": 392,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_024",
+          "elementId": "bl_026",
+          "x": 568,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_025",
+          "elementId": "bl_027",
+          "x": 744,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_026",
+          "elementId": "bl_021",
+          "x": 920,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_027",
+          "elementId": "bl_019",
+          "x": 1096,
+          "y": 560,
+          "w": 160,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_017",
+          "refId": "pr_020"
+        },
+        {
+          "id": "pa_018",
+          "refId": "pr_028"
+        },
+        {
+          "id": "pa_019",
+          "refId": "pr_030"
+        },
+        {
+          "id": "pa_020",
+          "refId": "pr_032"
+        },
+        {
+          "id": "pa_021",
+          "refId": "pr_029"
+        },
+        {
+          "id": "pa_022",
+          "refId": "pr_026"
+        },
+        {
+          "id": "pa_023",
+          "refId": "pr_033"
+        },
+        {
+          "id": "pa_024",
+          "refId": "pr_027"
+        },
+        {
+          "id": "pa_025",
+          "refId": "pr_024"
+        },
+        {
+          "id": "pa_026",
+          "refId": "pr_022"
+        },
+        {
+          "id": "pa_027",
+          "refId": "pr_023"
+        },
+        {
+          "id": "pa_028",
+          "refId": "pr_021"
+        },
+        {
+          "id": "pa_029",
+          "refId": "pr_031"
+        },
+        {
+          "id": "pa_030",
+          "refId": "pr_025"
+        }
+      ]
+    },
+    "dg_003": {
+      "id": "dg_003",
+      "kind": "bdd",
+      "name": "Parity",
+      "ownerId": "pa_003",
+      "symbols": [
+        {
+          "id": "sy_028",
+          "elementId": "bl_010",
+          "x": 40,
+          "y": 40,
+          "w": 240,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_029",
+          "elementId": "bl_008",
+          "x": 360,
+          "y": 40,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_030",
+          "elementId": "bl_009",
+          "x": 200,
+          "y": 300,
+          "w": 220,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_031",
+          "elementId": "bl_011",
+          "x": 620,
+          "y": 300,
+          "w": 220,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_032",
+          "elementId": "bl_025",
+          "x": 40,
+          "y": 580,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_033",
+          "elementId": "bl_027",
+          "x": 420,
+          "y": 580,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_031",
+          "refId": "pr_019"
+        },
+        {
+          "id": "pa_032",
+          "refId": "pr_018"
+        },
+        {
+          "id": "pa_033",
+          "refId": "rl_024"
+        },
+        {
+          "id": "pa_034",
+          "refId": "rl_021"
+        },
+        {
+          "id": "pa_035",
+          "refId": "rl_022"
+        },
+        {
+          "id": "pa_036",
+          "refId": "rl_023"
+        }
+      ]
+    },
+    "dg_004": {
+      "id": "dg_004",
+      "kind": "bdd",
+      "name": "What a model holds",
+      "ownerId": "pa_002",
+      "symbols": [
+        {
+          "id": "sy_034",
+          "elementId": "bl_007",
+          "x": 380,
+          "y": 40,
+          "w": 280,
+          "h": 0
+        },
+        {
+          "id": "sy_035",
+          "elementId": "bl_006",
+          "x": 120,
+          "y": 300,
+          "w": 260,
+          "h": 0
+        },
+        {
+          "id": "sy_036",
+          "elementId": "bl_005",
+          "x": 760,
+          "y": 300,
+          "w": 260,
+          "h": 0
+        },
+        {
+          "id": "sy_037",
+          "elementId": "bl_003",
+          "x": 40,
+          "y": 620,
+          "w": 240,
+          "h": 0
+        },
+        {
+          "id": "sy_038",
+          "elementId": "bl_001",
+          "x": 320,
+          "y": 620,
+          "w": 240,
+          "h": 0
+        },
+        {
+          "id": "sy_039",
+          "elementId": "bl_002",
+          "x": 600,
+          "y": 620,
+          "w": 200,
+          "h": 0
+        },
+        {
+          "id": "sy_040",
+          "elementId": "bl_004",
+          "x": 860,
+          "y": 620,
+          "w": 200,
+          "h": 0
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_037",
+          "refId": "pr_016"
+        },
+        {
+          "id": "pa_038",
+          "refId": "pr_017"
+        },
+        {
+          "id": "pa_039",
+          "refId": "pr_013"
+        },
+        {
+          "id": "pa_040",
+          "refId": "pr_004"
+        },
+        {
+          "id": "pa_041",
+          "refId": "pr_011"
+        },
+        {
+          "id": "pa_042",
+          "refId": "pr_012"
+        },
+        {
+          "id": "pa_043",
+          "refId": "rl_020"
+        },
+        {
+          "id": "pa_044",
+          "refId": "pr_008"
+        }
+      ]
+    },
+    "dg_005": {
+      "id": "dg_005",
+      "kind": "bdd",
+      "name": "In the toolkit",
+      "ownerId": "pa_011",
+      "symbols": [
+        {
+          "id": "sy_041",
+          "elementId": "bl_015",
+          "x": 40,
+          "y": 40,
+          "w": 220,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_042",
+          "elementId": "bl_018",
+          "x": 400,
+          "y": 40,
+          "w": 260,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_043",
+          "elementId": "bl_012",
+          "x": 800,
+          "y": 40,
+          "w": 240,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_044",
+          "elementId": "bl_016",
+          "x": 220,
+          "y": 300,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_045",
+          "elementId": "bl_014",
+          "x": 580,
+          "y": 300,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_046",
+          "elementId": "bl_010",
+          "x": 220,
+          "y": 540,
+          "w": 240,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_047",
+          "elementId": "bl_013",
+          "x": 580,
+          "y": 540,
+          "w": 240,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_045",
+          "refId": "rl_028"
+        },
+        {
+          "id": "pa_046",
+          "refId": "rl_029"
+        },
+        {
+          "id": "pa_047",
+          "refId": "rl_025"
+        },
+        {
+          "id": "pa_048",
+          "refId": "rl_026"
+        },
+        {
+          "id": "pa_049",
+          "refId": "rl_030"
+        },
+        {
+          "id": "pa_050",
+          "refId": "rl_027"
+        }
+      ]
+    },
+    "dg_006": {
+      "id": "dg_006",
+      "kind": "uc",
+      "name": "What an analyst does",
+      "ownerId": "pa_012",
+      "symbols": [
+        {
+          "id": "sy_048",
+          "elementId": "bl_017",
+          "x": 300,
+          "y": 40,
+          "w": 620,
+          "h": 680
+        },
+        {
+          "id": "sy_049",
+          "elementId": "ac_001",
+          "x": 60,
+          "y": 330,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "id": "sy_050",
+          "elementId": "ac_002",
+          "x": 1040,
+          "y": 580,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "id": "sy_051",
+          "elementId": "us_004",
+          "x": 380,
+          "y": 80,
+          "w": 240,
+          "h": 0
+        },
+        {
+          "id": "sy_052",
+          "elementId": "us_003",
+          "x": 380,
+          "y": 190,
+          "w": 230,
+          "h": 0
+        },
+        {
+          "id": "sy_053",
+          "elementId": "us_001",
+          "x": 680,
+          "y": 190,
+          "w": 210,
+          "h": 0
+        },
+        {
+          "id": "sy_054",
+          "elementId": "us_002",
+          "x": 380,
+          "y": 300,
+          "w": 210,
+          "h": 0
+        },
+        {
+          "id": "sy_055",
+          "elementId": "us_005",
+          "x": 380,
+          "y": 410,
+          "w": 220,
+          "h": 0
+        },
+        {
+          "id": "sy_056",
+          "elementId": "us_006",
+          "x": 380,
+          "y": 520,
+          "w": 190,
+          "h": 0
+        },
+        {
+          "id": "sy_057",
+          "elementId": "us_007",
+          "x": 660,
+          "y": 600,
+          "w": 200,
+          "h": 0
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_051",
+          "refId": "rl_031"
+        },
+        {
+          "id": "pa_052",
+          "refId": "rl_032"
+        },
+        {
+          "id": "pa_053",
+          "refId": "rl_037"
+        },
+        {
+          "id": "pa_054",
+          "refId": "rl_033"
+        },
+        {
+          "id": "pa_055",
+          "refId": "rl_034"
+        },
+        {
+          "id": "pa_056",
+          "refId": "rl_035"
+        },
+        {
+          "id": "pa_057",
+          "refId": "rl_036"
+        }
+      ]
+    },
+    "dg_007": {
+      "id": "dg_007",
+      "kind": "req",
+      "name": "Rules",
+      "ownerId": "pa_009",
+      "symbols": [
+        {
+          "id": "sy_058",
+          "elementId": "re_002",
+          "x": 40,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_059",
+          "elementId": "re_004",
+          "x": 370,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_060",
+          "elementId": "re_001",
+          "x": 700,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_061",
+          "elementId": "re_006",
+          "x": 1030,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_062",
+          "elementId": "re_005",
+          "x": 1360,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_063",
+          "elementId": "re_003",
+          "x": 1690,
+          "y": 40,
+          "w": 300,
+          "h": 0
+        },
+        {
+          "id": "sy_064",
+          "elementId": "bl_027",
+          "x": 210,
+          "y": 320,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_065",
+          "elementId": "bl_023",
+          "x": 700,
+          "y": 320,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_066",
+          "elementId": "bl_009",
+          "x": 1030,
+          "y": 320,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_067",
+          "elementId": "bl_020",
+          "x": 1360,
+          "y": 320,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        },
+        {
+          "id": "sy_068",
+          "elementId": "bl_032",
+          "x": 1690,
+          "y": 320,
+          "w": 200,
+          "h": 0,
+          "hide": {
+            "values": true,
+            "parts": true,
+            "ports": true,
+            "operations": true,
+            "references": true
+          }
+        }
+      ],
+      "paths": [
+        {
+          "id": "pa_058",
+          "refId": "rl_038"
+        },
+        {
+          "id": "pa_059",
+          "refId": "rl_040"
+        },
+        {
+          "id": "pa_060",
+          "refId": "rl_039"
+        },
+        {
+          "id": "pa_061",
+          "refId": "rl_041"
+        },
+        {
+          "id": "pa_062",
+          "refId": "rl_042"
+        },
+        {
+          "id": "pa_063",
+          "refId": "rl_043"
+        }
+      ]
+    },
+    "dg_008": {
+      "id": "dg_008",
+      "kind": "reqtable",
+      "name": "Rules, as a table",
+      "ownerId": "pa_009"
+    },
+    "dg_009": {
+      "id": "dg_009",
+      "kind": "matrix",
+      "name": "What verifies which rule",
+      "ownerId": "pa_010",
+      "relKind": "verify",
+      "rowKind": "testCase",
+      "colKind": "requirement"
+    }
+  }
+}
