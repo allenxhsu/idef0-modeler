@@ -41,15 +41,22 @@ command-line tool on its own; it needs no bundle.
 
 ## Appearance and fonts
 
-The app bundles its own copies of the toolkit theme's three display faces —
-Orbitron, Exo 2 and Share Tech Mono (OFL-licensed; the licenses travel
-alongside them in `Resources/Fonts`) — and registers them for its own use
-only via `ATSApplicationFontsPath` in `Info.plist`, without installing them
-system-wide. `Settings…` (`⌘,`) offers the same palette choice as the web
-app's own theme picker, stored under the same key so it is one shared
-personal preference, not part of the file format. This is cosmetic only: the
-diagram sheet itself is never themed by it, on screen or in any export — it
-always draws to the plain, FIPS-accurate appearance, regardless of palette.
+The app looks like the web app: the same dark HUD chrome from the shared
+ui-kit — panels, toolbar and status bar in the palette, Orbitron for
+headings, tabs and buttons, Exo 2 for text, Share Tech Mono for node numbers
+and codes — and, on screen, the same dark sheet, whose boxes sit a step
+lighter than the paper, with ICOM codes and the selection in the accent. The
+app bundles its own copies of the three faces (OFL-licensed; the licenses
+travel alongside them in `Resources/Fonts`) and registers them for its own
+use only via `ATSApplicationFontsPath` in `Info.plist`, without installing
+them system-wide. `Settings…` (`⌘,`) offers the same palette choice as the
+web app's own theme picker, stored under the same key so it is one shared
+personal preference, not part of the file format; changing it rethemes every
+open window at once. The sheet's theming is a colour remap applied at draw
+time on screen alone (`SheetTheme` in `IDEF0Render`): the drawing core and
+its display list are untouched, and every export — SVG, PNG, PDF, and the
+`idef0 render` command — prints the sheet in FIPS white and black exactly as
+before, whatever the palette.
 
 The palette itself lives in `Sources/IDEF0Modeler/SCTheme.swift`, a generated
 copy of the kit's own Swift tokens rather than a hand-written file: refresh it

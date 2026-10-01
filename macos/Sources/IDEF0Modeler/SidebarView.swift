@@ -8,22 +8,20 @@ import SwiftUI
 struct SidebarView: View {
     @ObservedObject var document: IDEF0Document
     let state: EditorState
+    @Environment(\.palette) private var palette
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Panel", selection: Binding(get: { state.sidebarTab }, set: { state.sidebarTab = $0 })) {
-                ForEach(EditorState.SidebarTab.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(8)
-            Divider()
+            // The web's `.panel-tabs`: Node Tree · Model · Glossary.
+            HUDTabs(tabs: EditorState.SidebarTab.allCases.map { ($0, $0.rawValue) },
+                    selection: Binding(get: { state.sidebarTab }, set: { state.sidebarTab = $0 }))
             switch state.sidebarTab {
             case .tree: NodeTreeView(document: document, state: state)
             case .model: ModelPanel(document: document)
             case .concepts: ConceptsPanel(document: document, state: state)
             }
         }
+        .background(palette.panel)
     }
 }
 
@@ -32,6 +30,7 @@ struct SidebarView: View {
 struct NodeTreeView: View {
     @ObservedObject var document: IDEF0Document
     let state: EditorState
+    @Environment(\.palette) private var palette
 
     struct Row: Identifiable {
         let id: String
@@ -61,17 +60,18 @@ struct NodeTreeView: View {
             ForEach(rows) { row in
                 Button { open(row) } label: {
                     HStack(spacing: 6) {
+                        // `.tree .nn`: the node number in the mono face, accent.
                         Text(row.node)
-                            .font(.system(.body, design: .monospaced).weight(.semibold))
-                            .foregroundStyle(.tint)
+                            .font(HUDType.mono)
+                            .foregroundStyle(palette.accent)
                             .frame(minWidth: 34, alignment: .leading)
                         Text(row.name.isEmpty ? "(unnamed)" : row.name)
                             .italic(row.name.isEmpty)
-                            .foregroundStyle(row.name.isEmpty ? .secondary : .primary)
+                            .foregroundStyle(row.name.isEmpty ? palette.text2 : palette.text)
                             .lineLimit(1)
                         Spacer(minLength: 0)
                         if row.childId != nil {
-                            Image(systemName: "square.split.2x2").foregroundStyle(.secondary).imageScale(.small)
+                            Image(systemName: "square.split.2x2").foregroundStyle(palette.text2).imageScale(.small)
                                 .help("Decomposed")
                         }
                     }
@@ -79,10 +79,11 @@ struct NodeTreeView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .listRowBackground(isCurrent(row) ? Color.accentColor.opacity(0.16) : Color.clear)
+                .hudRow(current: isCurrent(row), palette)
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.plain)
+        .onPanel(palette)
     }
 
     /// A decomposed box stands for its child diagram; any other for itself.
@@ -101,11 +102,12 @@ struct NodeTreeView: View {
 struct ModelPanel: View {
     @ObservedObject var document: IDEF0Document
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let m = document.model
         Form {
-            Section("Identification") {
+            Section {
                 CommitTextField(label: "Title", value: m.title) { v in edit("Edit Model Title") { Edits.setModelTitle(&$0, title: v) } }
                 CommitTextField(label: "Author", value: m.author) { v in edit("Edit Author") { $0.author = v } }
                 CommitTextField(label: "Project", value: m.project) { v in edit("Edit Project") { $0.project = v } }
@@ -114,6 +116,8 @@ struct ModelPanel: View {
                     if m.knownStatus == nil { Text(m.status).tag(m.status) }
                 }
                 CommitTextField(label: "Revised", value: m.revised, prompt: "YYYY-MM-DD") { v in edit("Edit Revision Date") { $0.revised = v } }
+            } header: {
+                SectionTitle("Identification")
             }
             Section {
                 CommitTextField(label: "Purpose", value: m.purpose, prompt: "Why the model exists", multiline: true) { v in
@@ -123,20 +127,25 @@ struct ModelPanel: View {
                     edit("Edit Viewpoint") { $0.viewpoint = v }
                 }
             } header: {
-                Text("Objectives")
+                SectionTitle("Objectives")
             } footer: {
-                Text("FIPS 183 §3.3.1.1: the A-0 diagram states the model's purpose and viewpoint.")
-                    .font(.caption).foregroundStyle(.secondary)
+                SectionNote("FIPS 183 §3.3.1.1: the A-0 diagram states the model's purpose and viewpoint.")
             }
-            Section("Statistics") {
-                LabeledContent("Diagrams", value: "\(m.diagrams.count)")
-                LabeledContent("Activities", value: "\(m.diagrams.values.reduce(0) { $0 + $1.boxes.count })")
-                LabeledContent("Arrows", value: "\(m.diagrams.values.reduce(0) { $0 + $1.arrows.count })")
-                LabeledContent("Concepts", value: "\(m.glossary.count)")
-                LabeledContent("Deepest level", value: "\(m.diagramTree().map(\.depth).max() ?? 0)")
+            Section {
+                Group {
+                    LabeledContent("Diagrams", value: "\(m.diagrams.count)")
+                    LabeledContent("Activities", value: "\(m.diagrams.values.reduce(0) { $0 + $1.boxes.count })")
+                    LabeledContent("Arrows", value: "\(m.diagrams.values.reduce(0) { $0 + $1.arrows.count })")
+                    LabeledContent("Concepts", value: "\(m.glossary.count)")
+                    LabeledContent("Deepest level", value: "\(m.diagramTree().map(\.depth).max() ?? 0)")
+                }
+                .font(HUDType.mono)
+            } header: {
+                SectionTitle("Statistics")
             }
         }
         .formStyle(.grouped)
+        .onPanel(palette)
     }
 
     private func edit(_ name: String, _ change: (inout IDEF0Model) -> Void) {
@@ -197,6 +206,7 @@ struct ConceptsPanel: View {
     @State private var ticked: [String] = []
     @State private var combineRequest: BundleRequest?
     @State private var bundleTerm = ""
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let m = document.model
@@ -238,8 +248,7 @@ struct ConceptsPanel: View {
                     }
                 }
             } footer: {
-                Text("Tick two or more concepts to combine them into a bundle. A concept already in a bundle cannot be ticked.")
-                    .font(.caption).foregroundStyle(.secondary)
+                SectionNote("Tick two or more concepts to combine them into a bundle. A concept already in a bundle cannot be ticked.")
             }
             Section {
                 ForEach(concepts) { c in
@@ -248,14 +257,14 @@ struct ConceptsPanel: View {
                         .id(c.id)
                 }
             } header: {
-                Text("\(m.glossary.count) concepts")
+                SectionTitle("\(m.glossary.count) concepts")
             } footer: {
                 if undefined > 0 {
-                    Text("\(undefined) of \(m.glossary.count) have no definition yet. Every activity and object needs one.")
-                        .font(.caption).foregroundStyle(.orange)
+                    SectionNote("\(undefined) of \(m.glossary.count) have no definition yet. Every activity and object needs one.", tone: .warning)
                 }
             }
         }
+        .onPanel(palette)
         .searchable(text: $search, placement: .sidebar, prompt: "Filter concepts")
         .bundleTermPrompt($combineRequest, term: $bundleTerm) { req, term in
             do {
@@ -295,6 +304,7 @@ struct ConceptRow: View {
     /// bundle, which shows the bundle it belongs to instead.
     var ticked: Binding<Bool>?
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let m = document.model
@@ -311,10 +321,11 @@ struct ConceptRow: View {
                     // Renaming carries every box and arrow along; onto an existing term, it merges.
                     document.apply("Rename Concept", undoManager: undoManager) { $0.renameConcept(id, to: v) }
                 }
-                .font(.body.weight(.semibold))
+                .font(SCFont.ui(13, weight: .semibold))
                 .textFieldStyle(.plain)
                 Spacer(minLength: 4)
-                Text(uses == 0 ? "unused" : "used \(uses)×").font(.caption).foregroundStyle(.secondary)
+                // `.gl-use`: the count, secondary.
+                Text(uses == 0 ? "unused" : "used \(uses)×").font(HUDType.caption).foregroundStyle(palette.text2)
                 if uses == 0 {
                     Button(role: .destructive) {
                         let id = concept.id
@@ -345,15 +356,15 @@ struct ConceptRow: View {
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(Array(concept.members.enumerated()), id: \.offset) { _, mid in
                         HStack(spacing: 4) {
-                            Image(systemName: "arrow.turn.down.right").imageScale(.small).foregroundStyle(.secondary)
+                            Image(systemName: "arrow.turn.down.right").imageScale(.small).foregroundStyle(palette.text2)
                             Text(m.conceptById(mid)?.term ?? "(missing concept \(mid))")
-                                .font(.callout)
-                                .foregroundStyle(m.conceptById(mid) == nil ? .red : .primary)
+                                .font(HUDType.small)
+                                .foregroundStyle(m.conceptById(mid) == nil ? SCStatus.danger : palette.text)
                         }
                     }
                     if Self.onCycle(m, concept) {
                         Text("⚠ Bundle “\(concept.term)” contains itself through its members. Un-combine it to break the cycle.")
-                            .font(.caption).foregroundStyle(.orange)
+                            .font(HUDType.caption).foregroundStyle(SCStatus.warning)
                     }
                     Button("Un-combine") {
                         let id = concept.id
@@ -369,7 +380,7 @@ struct ConceptRow: View {
                 }
                 .padding(.leading, 12)
             } else if let bundle = m.bundleOf(concept.id) {
-                Text("in bundle “\(bundle.term)”").font(.caption).foregroundStyle(.secondary)
+                Text("in bundle “\(bundle.term)”").font(HUDType.caption).foregroundStyle(palette.text2)
             }
             Picker("Kind", selection: Binding(get: { concept.kind }, set: { v in
                 let id = concept.id
@@ -384,7 +395,7 @@ struct ConceptRow: View {
                 let id = concept.id
                 document.apply("Define Concept", undoManager: undoManager) { Edits.defineConcept(&$0, conceptId: id, definition: v) }
             }
-            .font(.callout)
+            .font(HUDType.small)
             let occurrences = document.model.occurrencesOf(concept.id)
             if !occurrences.isEmpty {
                 FlowChips(items: occurrences.map { o in
@@ -395,6 +406,8 @@ struct ConceptRow: View {
             }
         }
         .padding(.vertical, 4)
+        // `.gl-item`: each concept on a card of the second panel colour.
+        .listRowBackground(palette.panel2)
     }
 
     /// Whether a bundle contains itself through its members — the validator's
@@ -411,8 +424,9 @@ struct FlowChips: View {
     var body: some View {
         FlowLayout(spacing: 4) {
             ForEach(items.indices, id: \.self) { i in
+                // `.occ`: a mono chip.
                 Button(items[i].label, action: items[i].action)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(HUDType.monoSmall)
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .help(items[i].help)

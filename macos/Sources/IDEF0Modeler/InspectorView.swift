@@ -7,24 +7,22 @@ import SwiftUI
 struct InspectorView: View {
     @ObservedObject var document: IDEF0Document
     let state: EditorState
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let summary = summarize(document.issues)
+        let count = summary.errors + summary.warnings
         VStack(spacing: 0) {
-            Picker("Inspector", selection: Binding(get: { state.inspectorTab }, set: { state.inspectorTab = $0 })) {
-                Text("Properties").tag(EditorState.InspectorTab.properties)
-                Text(summary.errors + summary.warnings == 0 ? "Checks ✓" : "Checks (\(summary.errors + summary.warnings))")
-                    .tag(EditorState.InspectorTab.checks)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(8)
-            Divider()
+            // The web's `.panel-tabs`: Properties · Checks, with the count.
+            HUDTabs(tabs: [(EditorState.InspectorTab.properties, "Properties"),
+                           (EditorState.InspectorTab.checks, count == 0 ? "Checks ✓" : "Checks (\(count))")],
+                    selection: Binding(get: { state.inspectorTab }, set: { state.inspectorTab = $0 }))
             switch state.inspectorTab {
             case .properties: PropertiesView(document: document, state: state)
             case .checks: ChecksView(document: document, state: state)
             }
         }
+        .background(palette.panel)
     }
 }
 
@@ -54,14 +52,15 @@ struct DiagramInspector: View {
     let state: EditorState
     let diagram: Diagram
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let m = document.model
         let isContext = diagram.id == m.rootDiagramId
         let codes = m.icomCodes(diagram)
         Form {
-            Section("Diagram") {
-                LabeledContent("Node") { Text(diagram.node).monospaced() }
+            Section {
+                LabeledContent("Node") { Text(diagram.node).font(HUDType.mono) }
                 LabeledContent("Boxes", value: isContext ? "\(diagram.boxes.count)" : "\(diagram.boxes.count) (want \(Sheet.decompMin)–\(Sheet.decompMax))")
                 LabeledContent("Arrows", value: "\(diagram.arrows.count)")
                 CommitTextField(label: "Title", value: diagram.title) { v in
@@ -72,24 +71,32 @@ struct DiagramInspector: View {
                     let did = diagram.id
                     document.apply("Set C-number", undoManager: undoManager) { Edits.setCNumber(&$0, diagramId: did, cNumber: v) }
                 }
+            } header: {
+                SectionTitle("Diagram")
             }
             if let parent = m.parentOf(diagram), let pd = m.diagrams[parent.diagramId] {
-                Section("Parent") {
+                Section {
                     Button("Go to \(pd.node) — box \(parent.box.number)") { state.open(pd.id, selecting: .box(parent.box.id)) }
+                } header: {
+                    SectionTitle("Parent")
                 }
             }
-            Section(isContext ? "Boundary arrows" : "Boundary arrows (ICOM)") {
+            Section {
                 let rows = Self.boundaryRows(diagram, codes: codes)
-                if rows.isEmpty { Text("None").foregroundStyle(.secondary) }
+                if rows.isEmpty { Text("None").foregroundStyle(palette.text2) }
                 ForEach(rows.indices, id: \.self) { i in
                     Button { state.selection = .arrow(rows[i].2.id) } label: {
-                        LabeledContent { Text(rows[i].1) } label: { Text(rows[i].0).monospaced().foregroundStyle(.tint) }
+                        // The ICOM code as the sheet draws it: mono, accent.
+                        LabeledContent { Text(rows[i].1) } label: { Text(rows[i].0).font(HUDType.mono).foregroundStyle(palette.accent) }
                     }
                     .buttonStyle(.plain)
                 }
+            } header: {
+                SectionTitle(isContext ? "Boundary arrows" : "Boundary arrows (ICOM)")
             }
         }
         .formStyle(.grouped)
+        .onPanel(palette)
     }
 
     /// Every boundary end of the diagram's arrows — code, label, arrow — in
@@ -118,6 +125,7 @@ struct BoxInspector: View {
     let diagram: Diagram
     let box: Box
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.palette) private var palette
     @State private var confirmsDeleteDecomposition = false
 
     var body: some View {
@@ -125,36 +133,41 @@ struct BoxInspector: View {
         let node = boxNode(diagram, box)
         let child = m.childDiagram(of: box)
         Form {
-            Section("Activity \(node)") {
+            Section {
                 CommitTextField(label: "Name", value: box.name, prompt: "Active verb phrase") { v in
                     perform("Rename Box") { try Edits.renameBox(&$0, diagramId: diagram.id, boxId: box.id, to: v) }
                 }
                 LabeledContent("Box number", value: "\(box.number)")
-                LabeledContent("Node number") { Text(node).monospaced() }
+                LabeledContent("Node number") { Text(node).font(HUDType.mono) }
                 if let c = m.conceptById(box.conceptId) {
                     LabeledContent("Concept") {
                         Text(jsTrim(c.definition).isEmpty ? "\(c.term) — no definition" : c.term)
-                            .foregroundStyle(jsTrim(c.definition).isEmpty ? .orange : .primary)
+                            .foregroundStyle(jsTrim(c.definition).isEmpty ? SCStatus.warning : palette.text)
                     }
                 }
                 CommitTextField(label: "Notes", value: box.note, multiline: true) { v in
                     perform("Edit Box Note") { Edits.setBoxNote(&$0, diagramId: diagram.id, boxId: box.id, note: v) }
                 }
+            } header: {
+                SectionTitle("Activity \(node)")
             }
-            Section("Decomposition") {
+            Section {
                 if let child {
                     Button("Open \(child.node) (\(child.boxes.count) boxes)") { state.open(child.id) }
                     Button("Delete Decomposition…", role: .destructive) { confirmsDeleteDecomposition = true }
+                        .foregroundStyle(SCStatus.danger)
                 } else {
                     Text("Not yet decomposed. A new child diagram starts with a port at its sheet edge for each of this box’s ICOM arrows, to connect to its activities.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(HUDType.small).foregroundStyle(palette.text2)
                     DecomposeMenu(document: document, state: state)
                 }
+            } header: {
+                SectionTitle("Decomposition")
             }
-            Section("Arrows on this box") {
+            Section {
                 let touching = diagram.arrowsTouching(box.id)
                 if touching.isEmpty {
-                    Text("None. IDEF0 requires at least one control and one output.").foregroundStyle(.secondary)
+                    Text("None. IDEF0 requires at least one control and one output.").foregroundStyle(palette.text2)
                 }
                 ForEach(touching) { a in
                     let role: Role = a.to.isOnBox(box.id) ? a.to.side.role : (a.from.side == .bottom ? .call : .output)
@@ -163,6 +176,8 @@ struct BoxInspector: View {
                     }
                     .buttonStyle(.plain)
                 }
+            } header: {
+                SectionTitle("Arrows on this box")
             }
             // S01: a box has no geometry of its own to edit. It sits on the
             // staircase at its place in the reading order, and only that
@@ -171,7 +186,7 @@ struct BoxInspector: View {
             Section {
                 if m.isRootDiagram(diagram.id) {
                     Text("The A-0 context diagram holds this one box; the child diagrams' boxes are laid out along the staircase.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(HUDType.small).foregroundStyle(palette.text2)
                 } else {
                     HStack {
                         Button("Move Earlier") { state.request(.moveSelection(by: -1)) }
@@ -181,15 +196,15 @@ struct BoxInspector: View {
                     }
                 }
             } header: {
-                Text("Order")
+                SectionTitle("Order")
             } footer: {
                 if !m.isRootDiagram(diagram.id) {
-                    Text("Boxes are laid out along the staircase in reading order. Moving one earlier or later renumbers it and lays the diagram out again.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    SectionNote("Boxes are laid out along the staircase in reading order. Moving one earlier or later renumbers it and lays the diagram out again.")
                 }
             }
         }
         .formStyle(.grouped)
+        .onPanel(palette)
         .confirmationDialog("Delete \(child?.node ?? "") and everything below it?", isPresented: $confirmsDeleteDecomposition) {
             Button("Delete Decomposition", role: .destructive) {
                 if let cid = child?.id {
@@ -218,12 +233,13 @@ struct ArrowInspector: View {
     @State private var combineWith: String?
     @State private var combineRequest: BundleRequest?
     @State private var bundleTerm = ""
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let m = document.model
         let codes = m.icomCodes(diagram)
         Form {
-            Section("\(arrow.role.label) arrow") {
+            Section {
                 CommitTextField(label: "Label", value: arrow.label, prompt: "Noun phrase") { v in
                     perform("Label Arrow") { try Edits.labelArrow(&$0, diagramId: diagram.id, arrowId: arrow.id, to: v) }
                 }
@@ -232,6 +248,8 @@ struct ArrowInspector: View {
                         Text(c.term == arrow.label ? c.kind : "\(c.term) (\(c.kind))")
                     }
                 }
+            } header: {
+                SectionTitle("\(arrow.role.label) arrow")
             }
             bundleSection(m)
             ForEach(ArrowEnd.allCases, id: \.self) { end in
@@ -248,27 +266,31 @@ struct ArrowInspector: View {
                     if !isRoot || arrow.from.isBox { Toggle("Tunnel at source ( )", isOn: tunnel(.from)) }
                     if !isRoot || arrow.to.isBox { Toggle("Tunnel at destination ( )", isOn: tunnel(.to)) }
                 } header: {
-                    Text("Tunnelling")
+                    SectionTitle("Tunnelling")
                 } footer: {
-                    Text("A tunnel means the arrow is deliberately absent from the connected diagram — not an inconsistency.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    SectionNote("A tunnel means the arrow is deliberately absent from the connected diagram — not an inconsistency.")
                 }
             }
-            Section("Routing") {
+            Section {
                 Button("Reset Bend and Label Offset") {
                     perform("Reset Routing") { Edits.resetRouting(&$0, diagramId: diagram.id, arrowId: arrow.id) }
                 }
                 Button("Reverse Direction") {
                     perform("Reverse Arrow") { Edits.reverseArrow(&$0, diagramId: diagram.id, arrowId: arrow.id) }
                 }
+            } header: {
+                SectionTitle("Routing")
             }
             Section {
                 CommitTextField(label: "Notes", value: arrow.note, multiline: true) { v in
                     perform("Edit Arrow Note") { Edits.setArrowNote(&$0, diagramId: diagram.id, arrowId: arrow.id, note: v) }
                 }
+            } header: {
+                SectionTitle("Notes")
             }
         }
         .formStyle(.grouped)
+        .onPanel(palette)
         .bundleTermPrompt($combineRequest, term: $bundleTerm) { req, term in
             combineWith = nil
             perform("Combine Concepts") { try Edits.combineConcepts(&$0, memberIds: req.memberIds, term: term) }
@@ -288,14 +310,14 @@ struct ArrowInspector: View {
                 if let bundle = Self.enclosingBundle(m, of: own.id) ?? (own.isBundle ? own : nil) {
                     LabeledContent("Bundle") { Text(bundle.term) }
                     Text("Members: \(bundle.members.map { m.conceptById($0)?.term ?? $0 }.joined(separator: ", "))")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(HUDType.small).foregroundStyle(palette.text2)
                     Button("Un-combine") {
                         perform("Un-combine Concept") { try Edits.uncombineConcept(&$0, bundleId: bundle.id) }
                     }
                 } else if m.bundleOf(own.id) == nil {
                     let others = Self.combinableConcepts(m, diagram, excluding: own.id)
                     if others.isEmpty {
-                        Text("No other concept on this diagram to combine with.").foregroundStyle(.secondary)
+                        Text("No other concept on this diagram to combine with.").foregroundStyle(palette.text2)
                     } else {
                         Picker("Combine with…", selection: $combineWith) {
                             Text("Choose a concept").tag(String?.none)
@@ -311,10 +333,9 @@ struct ArrowInspector: View {
                     }
                 }
             } header: {
-                Text("Bundle")
+                SectionTitle("Bundle")
             } footer: {
-                Text("A bundle's term labels the one arrow drawn where its members run between the same faces; a member alone keeps its own label.")
-                    .font(.caption).foregroundStyle(.secondary)
+                SectionNote("A bundle's term labels the one arrow drawn where its members run between the same faces; a member alone keeps its own label.")
             }
         }
     }
@@ -350,8 +371,8 @@ struct ArrowInspector: View {
             let b = diagram.findBox(e.boxId)
             return "Box \(b.map { String($0.number) } ?? "?") — \(b.map { $0.name.isEmpty ? "(unnamed)" : $0.name } ?? "(missing)")"
         }()
-        Section(end == .from ? "Source" : "Destination") {
-            Text(describe).foregroundStyle(.secondary)
+        Section {
+            Text(describe).foregroundStyle(palette.text2)
             Picker("Side", selection: Binding(get: { e.side }, set: { side in
                 perform("Move Arrow End") { Edits.setEndpointSide(&$0, diagramId: diagram.id, arrowId: arrow.id, end: end, side: side) }
             })) {
@@ -360,6 +381,8 @@ struct ArrowInspector: View {
             CommitNumberField(label: "Position (%)", value: jsRound(e.pos * 100)) { v in
                 perform("Move Arrow End") { Edits.setEndpointPosition(&$0, diagramId: diagram.id, arrowId: arrow.id, end: end, percent: v) }
             }
+        } header: {
+            SectionTitle(end == .from ? "Source" : "Destination")
         }
     }
 
@@ -379,6 +402,7 @@ struct ArrowInspector: View {
 struct ChecksView: View {
     @ObservedObject var document: IDEF0Document
     let state: EditorState
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let issues = document.issues
@@ -387,30 +411,41 @@ struct ChecksView: View {
             Section {
                 LabeledContent("Rule check") {
                     Text("\(summary.errors) error\(summary.errors == 1 ? "" : "s") · \(summary.warnings) warning\(summary.warnings == 1 ? "" : "s")")
-                        .monospacedDigit()
+                        .font(HUDType.mono)
                 }
                 if issues.isEmpty {
                     Text("The model satisfies every check: box counts, box names, required controls and outputs, arrow labels, arrow attachment sides, node numbering, parent/child ICOM consistency and concept definitions.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(HUDType.small).foregroundStyle(palette.text2)
                 }
             }
+            // The web's `.issue`: a card of the second panel colour with a
+            // rule down its left edge in the severity's colour, the place and
+            // code above the message in small mono caps.
             ForEach(issues.indices, id: \.self) { i in
                 let issue = issues[i]
+                let tone = issue.severity == .error ? SCStatus.danger : SCStatus.warning
                 Button { reveal(issue) } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Image(systemName: issue.severity == .error ? "xmark.octagon.fill" : "exclamationmark.triangle.fill")
-                            .foregroundStyle(issue.severity == .error ? .red : .orange)
+                            .foregroundStyle(tone)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(issue.diagramId.flatMap { document.model.diagrams[$0]?.node } ?? "model") · \(issue.code)")
-                                .font(.caption.monospaced()).foregroundStyle(.secondary)
+                                .font(HUDType.monoSmall).textCase(.uppercase).tracking(0.4).foregroundStyle(palette.text2)
                             Text(issue.message).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(
+                    ZStack(alignment: .leading) {
+                        palette.panel2
+                        Rectangle().fill(tone).frame(width: 3)
+                    }
+                )
             }
         }
+        .onPanel(palette)
     }
 
     private func reveal(_ issue: ValidationIssue) {
