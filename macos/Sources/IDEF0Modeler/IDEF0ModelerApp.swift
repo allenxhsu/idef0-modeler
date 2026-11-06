@@ -2,6 +2,7 @@
 
 import IDEF0Core
 import IDEF0Editing
+import IDEF0Render
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -13,11 +14,20 @@ struct IDEF0ModelerApp: App {
     // preference, not something the file format or either app depends on.
     @AppStorage("ui-kit.race") private var race: SCRace = .steel
 
+    init() {
+        // A document app with nothing to reopen shows the Open panel at launch
+        // by default; a modeller should open on a blank sheet instead, like
+        // the web app does. AppKit reads this default before the first
+        // document is created, so it must be set here, not in a delegate.
+        UserDefaults.standard.register(defaults: ["NSShowAppCentricOpenPanelInsteadOfUntitledFile": false])
+    }
+
     var body: some Scene {
         DocumentGroup(newDocument: { IDEF0Document() }) { file in
+            // The window themes itself from the same "ui-kit.race" default
+            // (S03), so every open window follows a change in Settings.
             EditorWindow(document: file.document)
                 .frame(minWidth: 900, minHeight: 600)
-                .tint(race.palette.accent)
         }
         // Room for the node tree, a legible sheet and the inspector side by side.
         .defaultSize(width: 1440, height: 900)
@@ -28,34 +38,62 @@ struct IDEF0ModelerApp: App {
 }
 
 /// The Mac side of the toolkit's appearance picker (⌘,): the same palette
-/// choice as the web app's `<sc-theme-picker>`, just as a native picker. The
-/// diagram sheet itself never reads this — the drawing stays FIPS-accurate,
-/// on screen and in every export, regardless of palette.
+/// choice as the web app's `<sc-theme-picker>`, just as a native picker. It
+/// colours the chrome and, on screen, the sheet (S03) — as the web app's
+/// stylesheet does — and nothing else: every export and the CLI print the
+/// sheet in FIPS white and black regardless.
 struct AppearanceSettings: View {
     @Binding var race: SCRace
 
     var body: some View {
+        let palette = race.palette
         VStack(alignment: .leading, spacing: 14) {
-            Text("APPEARANCE").font(SCFont.display(11, weight: .semibold)).tracking(1.5)
-                .foregroundStyle(.secondary)
+            Text("Appearance").font(SCFont.display(11, weight: .semibold)).tracking(1.5).textCase(.uppercase)
+                .foregroundStyle(palette.text3)
             Picker("Palette", selection: $race) {
                 ForEach(SCRace.allCases) { r in Text(r.label).tag(r) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             HStack(spacing: 10) {
-                ForEach([race.palette.bg, race.palette.panel, race.palette.accent, race.palette.accent2], id: \.self) { c in
-                    RoundedRectangle(cornerRadius: 4).fill(c).frame(width: 28, height: 22)
-                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(race.palette.line))
+                ForEach(Array([palette.bg, palette.panel, palette.sunken, palette.panel2, palette.accent, palette.accent2].enumerated()), id: \.offset) { _, c in
+                    RoundedRectangle(cornerRadius: 2).fill(c).frame(width: 28, height: 22)
+                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(palette.lineStrong))
                 }
             }
-            Text("Colours the app's controls and accents. The diagram sheet always prints and exports the same way.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            SheetSwatch(palette: palette)
+            Text("Colours the app and, on screen, the diagram sheet — as the web app does. Exports always print the sheet in FIPS white and black.")
+                .font(HUDType.small)
+                .foregroundStyle(palette.text2)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(20)
-        .frame(width: 320)
+        .frame(width: 340)
+        .background(palette.bg)
+        .foregroundStyle(palette.text)
+        .tint(palette.accent)
+        .environment(\.palette, palette)
+        .preferredColorScheme(.dark)
+    }
+
+    /// A glimpse of the sheet in this palette: sheet, box, ink, accent.
+    struct SheetSwatch: View {
+        let palette: SCPalette
+        var body: some View {
+            let theme = palette.sheetTheme
+            ZStack {
+                Rectangle().fill(color(theme.sheet))
+                Rectangle().stroke(color(theme.ink), lineWidth: 1).padding(6)
+                HStack(spacing: 10) {
+                    Rectangle().fill(color(theme.box)).overlay(Rectangle().stroke(color(theme.ink), lineWidth: 1.2)).frame(width: 60, height: 30)
+                    Rectangle().fill(color(theme.accent)).frame(width: 30, height: 1.5)
+                    Text("I1").font(SCFont.mono(9, weight: .bold)).foregroundStyle(color(theme.icom))
+                }
+            }
+            .frame(height: 56)
+        }
+
+        private func color(_ c: RGBA) -> Color { Color(red: c.r, green: c.g, blue: c.b, opacity: c.a) }
     }
 }
 

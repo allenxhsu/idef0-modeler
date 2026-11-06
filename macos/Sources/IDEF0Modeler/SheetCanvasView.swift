@@ -31,6 +31,19 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         }
     }
 
+    /// The palette the canvas is drawn in (S03) — the user's choice in
+    /// Settings, handed down by `SheetCanvas`. The sheet is remapped into it
+    /// on screen only (`SheetTheme`); exports never see it.
+    var race: SCRace = .steel {
+        didSet {
+            guard race != oldValue else { return }
+            colors = CanvasColors(race.palette)
+            styleTextField()
+            needsDisplay = true
+        }
+    }
+    private(set) var colors = CanvasColors(SCRace.steel.palette)
+
     // The view transform: screen = sheet × scale + translation.
     private(set) var scale: CGFloat = 1
     private var translation = CGPoint.zero
@@ -257,7 +270,9 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
 
     override func draw(_ dirtyRect: NSRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext, document != nil, let state else { return }
-        ctx.setFillColor(NSColor.underPageBackgroundColor.cgColor)
+        // The desk around the sheet: the palette's background, as the web's
+        // `#canvas-wrap` is under the kit.
+        ctx.setFillColor(colors.desk.cgColor)
         ctx.fill(bounds)
         guard model.diagrams[state.diagramId] != nil else { return }
 
@@ -265,10 +280,10 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         ctx.translateBy(x: translation.x, y: translation.y)
         ctx.scaleBy(x: scale, y: scale)
 
-        // The paper, lifted off the backdrop.
+        // The sheet, lifted off the desk.
         ctx.saveGState()
-        ctx.setShadow(offset: CGSize(width: 0, height: 3), blur: 14, color: NSColor.black.withAlphaComponent(0.22).cgColor)
-        ctx.setFillColor(.white)
+        ctx.setShadow(offset: CGSize(width: 0, height: 3), blur: 14, color: NSColor.black.withAlphaComponent(0.6).cgColor)
+        ctx.setFillColor(colors.sheet.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: Sheet.size.w, height: Sheet.size.h))
         ctx.restoreGState()
 
@@ -278,7 +293,9 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         case .arrow(let id): options.selectedArrowId = id
         case nil: break
         }
-        SheetRenderer.draw(SheetDrawing.build(model, diagramId: state.diagramId, options: options), in: ctx)
+        // The same display list every export draws, in the palette's colours
+        // (S03): the core's ops are untouched, only their paint is remapped.
+        SheetRenderer.draw(SheetDrawing.build(model, diagramId: state.diagramId, options: options), in: ctx, theme: colors.sheetTheme)
         drawOverlay(ctx)
         ctx.restoreGState()
     }
@@ -286,13 +303,18 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
     private func drawOverlay(_ ctx: CGContext) {
         guard let d = diagram else { return }
         let k = 1 / scale
-        let accent = NSColor.controlAccentColor.cgColor
+        // The palette's accent, as the web's `.anchor`, `.handle`, `.ghost`,
+        // `.bendh` and `.dropzone` take `--accent`; a handle's fill is the
+        // sheet's own colour.
+        let accentColor = colors.accent
+        let accent = accentColor.cgColor
+        let handleFill = colors.sheet.cgColor
 
         if state.tool == .arrow {
             let w = Sheet.work
-            ctx.setFillColor(NSColor.controlAccentColor.withAlphaComponent(0.06).cgColor)
+            ctx.setFillColor(accentColor.withAlphaComponent(0.08).cgColor)
             ctx.fill(CGRect(x: w.x, y: w.y, width: w.w, height: w.h))
-            ctx.setStrokeColor(NSColor.controlAccentColor.withAlphaComponent(0.5).cgColor)
+            ctx.setStrokeColor(accentColor.withAlphaComponent(0.5).cgColor)
             ctx.setLineWidth(1.2 * k)
             ctx.setLineDash(phase: 0, lengths: [6 * k, 4 * k])
             ctx.stroke(CGRect(x: w.x, y: w.y, width: w.w, height: w.h))
@@ -300,7 +322,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         }
 
         func handle(_ rect: CGRect, round: Bool) {
-            ctx.setFillColor(.white)
+            ctx.setFillColor(handleFill)
             ctx.setStrokeColor(accent)
             ctx.setLineWidth(1.4 * k)
             if round { ctx.fillEllipse(in: rect); ctx.strokeEllipse(in: rect) } else { ctx.fill(rect); ctx.stroke(rect) }
@@ -323,7 +345,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
                     ctx.saveGState()
                     ctx.translateBy(x: CGFloat(bend.point.x), y: CGFloat(bend.point.y))
                     ctx.rotate(by: .pi / 4)
-                    ctx.setFillColor(NSColor.controlAccentColor.withAlphaComponent(0.85).cgColor)
+                    ctx.setFillColor(accentColor.withAlphaComponent(0.85).cgColor)
                     ctx.fill(CGRect(x: -4 * k, y: -4 * k, width: 8 * k, height: 8 * k))
                     ctx.restoreGState()
                 }
@@ -906,8 +928,10 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         let field = NSTextField(string: value)
         field.delegate = self
         field.alignment = .center
-        field.focusRingType = .default
-        field.bezelStyle = .roundedBezel
+        field.focusRingType = .none
+        field.isBezeled = false
+        field.isBordered = false
+        field.drawsBackground = true
         field.placeholderString = {
             if case .boxName = target { return "Active verb phrase" }
             return "Noun phrase"
@@ -916,6 +940,7 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
         activeEdit = (target, d.id, bundleId)
         editingRect = rect
         textField = field
+        styleTextField()
         addSubview(field)
         repositionTextField()
         window?.makeFirstResponder(field)
@@ -924,10 +949,35 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
 
     private var editingRect: SheetRect?
 
+    /// The field in the palette (S03) — the web's `#inline-editor input`: a
+    /// 2 px accent border, the sunken surface behind the palette's text, so
+    /// it stays legible over a dark sheet whatever the palette. Explicit
+    /// colours, not the appearance's, so the field cannot come up light
+    /// should the window's appearance lag the palette.
+    private func styleTextField() {
+        guard let field = textField else { return }
+        field.appearance = NSAppearance(named: .darkAqua)
+        field.backgroundColor = colors.sunken
+        field.textColor = colors.text
+        field.wantsLayer = true
+        field.layer?.borderColor = colors.accent.cgColor
+        field.layer?.borderWidth = 2
+        field.layer?.cornerRadius = 2
+        placeholderInPalette(field)
+    }
+
+    /// The placeholder in the tertiary text colour, at the field's own size.
+    private func placeholderInPalette(_ field: NSTextField) {
+        guard let prompt = field.placeholderString ?? field.placeholderAttributedString?.string else { return }
+        field.placeholderAttributedString = NSAttributedString(
+            string: prompt, attributes: [.foregroundColor: colors.text3, .font: field.font ?? NSFont.systemFont(ofSize: 13)])
+    }
+
     private func repositionTextField() {
         guard let field = textField, let r = editingRect else { return }
         let frame = screenRect(r)
         field.font = .systemFont(ofSize: max(11, min(18, 13 * scale)))
+        placeholderInPalette(field)
         field.frame = CGRect(x: frame.minX, y: frame.midY - 12, width: max(frame.width, 120), height: 24)
     }
 
@@ -982,17 +1032,22 @@ final class SheetCanvasView: NSView, NSTextFieldDelegate, NSUserInterfaceValidat
 struct SheetCanvas: NSViewRepresentable {
     @ObservedObject var document: IDEF0Document
     let state: EditorState
+    /// The palette picked in Settings (S03) — the same key the web app's
+    /// theme picker writes — so a change there redraws every canvas at once.
+    @AppStorage("ui-kit.race") private var race: SCRace = .steel
 
     func makeNSView(context: Context) -> SheetCanvasView {
         let view = SheetCanvasView()
         view.document = document
         view.state = state
+        view.race = race
         return view
     }
 
     func updateNSView(_ view: SheetCanvasView, context: Context) {
         view.document = document
         view.state = state
+        view.race = race
         // Reading these registers the dependencies that bring SwiftUI back here.
         _ = document.model
         _ = (state.diagramId, state.selection, state.tool, state.pendingFrom, state.editing)
